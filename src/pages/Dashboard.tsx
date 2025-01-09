@@ -36,6 +36,8 @@ const Dashboard = () => {
             console.error("Error initializing Typeform widget:", error);
             reject(error);
           }
+        } else {
+          reject(new Error("Typeform widget not available"));
         }
       };
 
@@ -65,28 +67,35 @@ const Dashboard = () => {
   }, [loadTypeformScript, toast]);
 
   const reloadForm = useCallback(async (formId: string) => {
-    const iframe = document.querySelector(`iframe[data-tf-live="${formId}"]`);
-    if (iframe) {
-      const container = iframe.parentElement;
-      if (container) {
-        container.innerHTML = '';
-        const newDiv = document.createElement('div');
-        newDiv.setAttribute('data-tf-live', formId);
-        container.appendChild(newDiv);
-        
-        try {
+    try {
+      // Remove existing form
+      const iframe = document.querySelector(`iframe[data-tf-live="${formId}"]`);
+      if (iframe) {
+        const container = iframe.parentElement;
+        if (container) {
+          // Clear the container
+          container.innerHTML = '';
+          
+          // Create new form container
+          const newDiv = document.createElement('div');
+          newDiv.setAttribute('data-tf-live', formId);
+          container.appendChild(newDiv);
+          
+          // Reload Typeform script
           await loadTypeformScript();
+          
           toast({
             description: "Formulario actualizado",
             duration: 2000,
           });
-        } catch (error) {
-          toast({
-            description: "Error al actualizar el formulario",
-            variant: "destructive",
-          });
         }
       }
+    } catch (error) {
+      console.error("Error reloading form:", error);
+      toast({
+        description: "Error al actualizar el formulario",
+        variant: "destructive",
+      });
     }
   }, [loadTypeformScript, toast]);
 
