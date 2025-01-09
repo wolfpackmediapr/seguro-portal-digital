@@ -14,6 +14,11 @@ const Dashboard = () => {
     script.async = true;
     document.body.appendChild(script);
 
+    script.onload = () => {
+      // @ts-ignore - window.tf is added by Typeform's script
+      if (window.tf) window.tf.createWidget();
+    };
+
     return () => {
       document.body.removeChild(script);
     };
@@ -32,14 +37,18 @@ const Dashboard = () => {
         const newDiv = document.createElement('div');
         newDiv.setAttribute('data-tf-live', formId);
         container.appendChild(newDiv);
-        // Reinitialize Typeform
-        // @ts-ignore - window.tf is added by Typeform's script
-        if (window.tf) window.tf.createWidget();
         
-        toast({
-          description: "Formulario actualizado",
-          duration: 2000,
-        });
+        // Wait a brief moment to ensure DOM updates before reinitializing
+        setTimeout(() => {
+          // @ts-ignore - window.tf is added by Typeform's script
+          if (window.tf) {
+            window.tf.createWidget();
+            toast({
+              description: "Formulario actualizado",
+              duration: 2000,
+            });
+          }
+        }, 100);
       }
     }
   }, [toast]);
