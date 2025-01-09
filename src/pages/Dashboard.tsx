@@ -21,16 +21,36 @@ const Dashboard = () => {
     const script = document.createElement("script");
     script.src = "//embed.typeform.com/next/embed.js";
     script.async = true;
-    document.body.appendChild(script);
+    
+    // Add error handling for script loading
+    script.onerror = () => {
+      console.error("Error loading Typeform script");
+      toast({
+        description: "Error al cargar el formulario",
+        variant: "destructive",
+      });
+    };
 
     script.onload = () => {
-      if (window.tf) window.tf.createWidget();
+      if (window.tf) {
+        try {
+          window.tf.createWidget();
+        } catch (error) {
+          console.error("Error initializing Typeform widget:", error);
+          toast({
+            description: "Error al inicializar el formulario",
+            variant: "destructive",
+          });
+        }
+      }
     };
+
+    document.body.appendChild(script);
 
     return () => {
       document.body.removeChild(script);
     };
-  }, []);
+  }, [toast]);
 
   const reloadForm = useCallback((formId: string) => {
     // Get the form iframe
@@ -49,11 +69,19 @@ const Dashboard = () => {
         // Wait a brief moment to ensure DOM updates before reinitializing
         setTimeout(() => {
           if (window.tf) {
-            window.tf.createWidget();
-            toast({
-              description: "Formulario actualizado",
-              duration: 2000,
-            });
+            try {
+              window.tf.createWidget();
+              toast({
+                description: "Formulario actualizado",
+                duration: 2000,
+              });
+            } catch (error) {
+              console.error("Error reinitializing Typeform widget:", error);
+              toast({
+                description: "Error al actualizar el formulario",
+                variant: "destructive",
+              });
+            }
           }
         }, 100);
       }
