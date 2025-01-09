@@ -1,7 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { RotateCw } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
+  const { toast } = useToast();
+
   useEffect(() => {
     // Load Typeform embed script
     const script = document.createElement("script");
@@ -13,6 +18,31 @@ const Dashboard = () => {
       document.body.removeChild(script);
     };
   }, []);
+
+  const reloadForm = useCallback((formId: string) => {
+    // Get the form iframe
+    const iframe = document.querySelector(`iframe[data-tf-live="${formId}"]`);
+    if (iframe) {
+      // Get the parent element that contains the Typeform embed
+      const container = iframe.parentElement;
+      if (container) {
+        // Remove the existing iframe
+        container.innerHTML = '';
+        // Recreate the div with the data-tf-live attribute
+        const newDiv = document.createElement('div');
+        newDiv.setAttribute('data-tf-live', formId);
+        container.appendChild(newDiv);
+        // Reinitialize Typeform
+        // @ts-ignore - window.tf is added by Typeform's script
+        if (window.tf) window.tf.createWidget();
+        
+        toast({
+          description: "Formulario actualizado",
+          duration: 2000,
+        });
+      }
+    }
+  }, [toast]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,8 +67,16 @@ const Dashboard = () => {
 
         <main className="flex-1 p-6 space-y-6">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Alerta Radio</CardTitle>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => reloadForm("01JEWES3GA7PPQN2SPRNHSVHPG")}
+                title="Actualizar formulario"
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <div data-tf-live="01JEWES3GA7PPQN2SPRNHSVHPG"></div>
@@ -46,8 +84,16 @@ const Dashboard = () => {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Alerta TV</CardTitle>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => reloadForm("01JEWEP95CN5YH8JCET8GEXRSK")}
+                title="Actualizar formulario"
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
             </CardHeader>
             <CardContent>
               <div data-tf-live="01JEWEP95CN5YH8JCET8GEXRSK"></div>
