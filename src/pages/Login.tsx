@@ -2,14 +2,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Icons } from "@/components/ui/icons";
 
 const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     // Supabase authentication will be implemented here after connection
+    setIsLoading(false);
   };
 
   return (
@@ -21,24 +26,40 @@ const Login = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
+              <Label htmlFor="username">Nombre de Usuario</Label>
               <Input
+                id="username"
                 type="text"
-                placeholder="Nombre de Usuario"
+                placeholder="Ingrese su nombre de usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                disabled={isLoading}
                 className="w-full"
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
               <Input
+                id="password"
                 type="password"
-                placeholder="Contraseña"
+                placeholder="Ingrese su contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
                 className="w-full"
               />
             </div>
-            <Button type="submit" className="w-full">
+            <Button
+              asChild
+              variant="link"
+              className="px-0 text-sm text-muted-foreground hover:text-primary"
+            >
+              <a href="/forgot-password">¿Olvidaste tu contraseña?</a>
+            </Button>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && (
+                <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Acceder
             </Button>
             <div className="relative my-4">
@@ -52,10 +73,12 @@ const Login = () => {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" disabled={isLoading}>
+                <Icons.microsoft className="mr-2 h-4 w-4" />
                 Microsoft
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button variant="outline" className="w-full" disabled={isLoading}>
+                <Icons.google className="mr-2 h-4 w-4" />
                 Google
               </Button>
             </div>
