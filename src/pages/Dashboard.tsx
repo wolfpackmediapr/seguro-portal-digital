@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RotateCw } from "lucide-react";
+import { RotateCw, UserRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Declare the type for the Typeform widget
@@ -102,10 +102,9 @@ const Dashboard = () => {
           <h1 className="text-xl font-semibold">Alertas Radio y TV</h1>
         </div>
         <div className="flex items-center space-x-4">
-          <button className="p-2 hover:bg-gray-100 rounded-full">
-            <span className="sr-only">Perfil</span>
-            <div className="w-8 h-8 rounded-full bg-gray-200" />
-          </button>
+          <div className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors">
+            <UserRound className="w-6 h-6 text-gray-600" />
+          </div>
         </div>
       </nav>
 
