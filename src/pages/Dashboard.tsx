@@ -4,6 +4,15 @@ import { Button } from "@/components/ui/button";
 import { RotateCw } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
+// Declare the type for the Typeform widget
+declare global {
+  interface Window {
+    tf: {
+      createWidget: () => void;
+    };
+  }
+}
+
 const Dashboard = () => {
   const { toast } = useToast();
 
@@ -15,7 +24,6 @@ const Dashboard = () => {
     document.body.appendChild(script);
 
     script.onload = () => {
-      // @ts-ignore - window.tf is added by Typeform's script
       if (window.tf) window.tf.createWidget();
     };
 
@@ -40,7 +48,6 @@ const Dashboard = () => {
         
         // Wait a brief moment to ensure DOM updates before reinitializing
         setTimeout(() => {
-          // @ts-ignore - window.tf is added by Typeform's script
           if (window.tf) {
             window.tf.createWidget();
             toast({
