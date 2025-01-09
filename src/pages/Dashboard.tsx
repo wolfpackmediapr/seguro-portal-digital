@@ -91,9 +91,16 @@ const Dashboard = () => {
   }, [loadTypeformScript, toast]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <nav className="bg-white border-b px-4 py-2 flex justify-between items-center">
-        <h1 className="text-xl font-semibold">Bienvenido</h1>
+        <div className="flex items-center space-x-2">
+          <img 
+            src="/lovable-uploads/783b3503-53aa-46a1-a06f-98a881be711f.png" 
+            alt="Publimedia Logo" 
+            className="h-8"
+          />
+          <h1 className="text-xl font-semibold">Bienvenido</h1>
+        </div>
         <div className="flex items-center space-x-4">
           <button className="p-2 hover:bg-gray-100 rounded-full">
             <span className="sr-only">Perfil</span>
@@ -102,8 +109,8 @@ const Dashboard = () => {
         </div>
       </nav>
 
-      <div className="flex">
-        <aside className="w-64 min-h-screen bg-white border-r p-4">
+      <div className="flex flex-1">
+        <aside className="w-64 bg-white border-r p-4">
           <nav className="space-y-2">
             <a href="#" className="block px-4 py-2 rounded hover:bg-gray-100">
               Inicio
@@ -147,6 +154,24 @@ const Dashboard = () => {
           </Card>
         </main>
       </div>
+
+      <footer className="bg-white border-t py-4 px-6 mt-auto">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <img 
+              src="/lovable-uploads/783b3503-53aa-46a1-a06f-98a881be711f.png" 
+              alt="Publimedia Logo" 
+              className="h-6"
+            />
+            <span className="text-sm text-gray-600">
+              © {new Date().getFullYear()} Todos los derechos reservados
+            </span>
+          </div>
+          <div className="text-sm text-gray-500">
+            Powered by WolfPack Media
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
