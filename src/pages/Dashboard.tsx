@@ -2,7 +2,7 @@ import { useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCw } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 // Declare the type for the Typeform widget
 declare global {
@@ -16,77 +16,79 @@ declare global {
 const Dashboard = () => {
   const { toast } = useToast();
 
+  const loadTypeformScript = useCallback(() => {
+    return new Promise<void>((resolve, reject) => {
+      const existingScript = document.querySelector('script[src*="typeform"]');
+      if (existingScript) {
+        document.body.removeChild(existingScript);
+      }
+
+      const script = document.createElement("script");
+      script.src = "//embed.typeform.com/next/embed.js";
+      script.async = true;
+
+      script.onload = () => {
+        if (window.tf) {
+          try {
+            window.tf.createWidget();
+            resolve();
+          } catch (error) {
+            console.error("Error initializing Typeform widget:", error);
+            reject(error);
+          }
+        }
+      };
+
+      script.onerror = (error) => {
+        console.error("Error loading Typeform script:", error);
+        reject(error);
+      };
+
+      document.body.appendChild(script);
+    });
+  }, []);
+
   useEffect(() => {
-    // Load Typeform embed script
-    const script = document.createElement("script");
-    script.src = "//embed.typeform.com/next/embed.js";
-    script.async = true;
-    
-    // Add error handling for script loading
-    script.onerror = () => {
-      console.error("Error loading Typeform script");
+    loadTypeformScript().catch((error) => {
       toast({
         description: "Error al cargar el formulario",
         variant: "destructive",
       });
-    };
-
-    script.onload = () => {
-      if (window.tf) {
-        try {
-          window.tf.createWidget();
-        } catch (error) {
-          console.error("Error initializing Typeform widget:", error);
-          toast({
-            description: "Error al inicializar el formulario",
-            variant: "destructive",
-          });
-        }
-      }
-    };
-
-    document.body.appendChild(script);
+    });
 
     return () => {
-      document.body.removeChild(script);
+      const script = document.querySelector('script[src*="typeform"]');
+      if (script) {
+        document.body.removeChild(script);
+      }
     };
-  }, [toast]);
+  }, [loadTypeformScript, toast]);
 
-  const reloadForm = useCallback((formId: string) => {
-    // Get the form iframe
+  const reloadForm = useCallback(async (formId: string) => {
     const iframe = document.querySelector(`iframe[data-tf-live="${formId}"]`);
     if (iframe) {
-      // Get the parent element that contains the Typeform embed
       const container = iframe.parentElement;
       if (container) {
-        // Remove the existing iframe
         container.innerHTML = '';
-        // Recreate the div with the data-tf-live attribute
         const newDiv = document.createElement('div');
         newDiv.setAttribute('data-tf-live', formId);
         container.appendChild(newDiv);
         
-        // Wait a brief moment to ensure DOM updates before reinitializing
-        setTimeout(() => {
-          if (window.tf) {
-            try {
-              window.tf.createWidget();
-              toast({
-                description: "Formulario actualizado",
-                duration: 2000,
-              });
-            } catch (error) {
-              console.error("Error reinitializing Typeform widget:", error);
-              toast({
-                description: "Error al actualizar el formulario",
-                variant: "destructive",
-              });
-            }
-          }
-        }, 100);
+        try {
+          await loadTypeformScript();
+          toast({
+            description: "Formulario actualizado",
+            duration: 2000,
+          });
+        } catch (error) {
+          toast({
+            description: "Error al actualizar el formulario",
+            variant: "destructive",
+          });
+        }
       }
     }
-  }, [toast]);
+  }, [loadTypeformScript, toast]);
 
   return (
     <div className="min-h-screen bg-gray-50">
