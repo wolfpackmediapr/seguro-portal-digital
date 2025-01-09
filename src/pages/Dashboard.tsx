@@ -99,7 +99,7 @@ const Dashboard = () => {
             alt="Publimedia Logo" 
             className="h-8"
           />
-          <h1 className="text-xl font-semibold">Bienvenido</h1>
+          <h1 className="text-xl font-semibold">Alertas Radio y TV</h1>
         </div>
         <div className="flex items-center space-x-4">
           <button className="p-2 hover:bg-gray-100 rounded-full">
