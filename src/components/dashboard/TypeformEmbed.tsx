@@ -14,6 +14,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
   const loadTypeformScript = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
+      // First remove any existing Typeform script
       const existingScript = document.querySelector('script[src*="typeform"]');
       if (existingScript) {
         document.body.removeChild(existingScript);
@@ -24,15 +25,12 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
       script.async = true;
 
       script.onload = () => {
-        // Add a small delay to ensure DOM is ready
         setTimeout(() => {
           try {
             if (window.tf) {
               window.tf.createWidget();
               resolve();
             } else {
-              console.warn("Typeform widget not immediately available, retrying...");
-              // Add another retry after a short delay
               setTimeout(() => {
                 if (window.tf) {
                   window.tf.createWidget();
@@ -42,7 +40,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
             }
           } catch (error) {
             console.warn("Non-critical error during Typeform initialization:", error);
-            resolve(); // Resolve anyway since forms often load successfully
+            resolve();
           }
         }, 100);
       };
@@ -54,31 +52,36 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
       document.body.appendChild(script);
     });
-  }, [formId]);
+  }, []);
 
   const reloadForm = useCallback(async () => {
     try {
-      // First, find and remove the existing form
-      const iframe = document.querySelector(`iframe[data-tf-live="${formId}"]`);
-      if (iframe) {
-        const container = iframe.parentElement;
-        if (container) {
-          container.innerHTML = '';
+      // Remove all existing Typeform elements
+      const existingForms = document.querySelectorAll(`[data-tf-live="${formId}"]`);
+      existingForms.forEach(form => {
+        if (form.parentElement) {
+          form.parentElement.innerHTML = '';
           
           // Create new container
           const newDiv = document.createElement('div');
           newDiv.setAttribute('data-tf-live', formId);
-          container.appendChild(newDiv);
-          
-          // Load the script and initialize the form
-          await loadTypeformScript();
-          
-          toast({
-            description: "Formulario actualizado",
-            duration: 2000,
-          });
+          form.parentElement.appendChild(newDiv);
         }
+      });
+
+      // Remove existing script and load a fresh one
+      const existingScript = document.querySelector('script[src*="typeform"]');
+      if (existingScript) {
+        document.body.removeChild(existingScript);
       }
+
+      // Load fresh script and initialize
+      await loadTypeformScript();
+      
+      toast({
+        description: "Formulario actualizado",
+        duration: 2000,
+      });
     } catch (error) {
       console.error("Error reloading form:", error);
       toast({
