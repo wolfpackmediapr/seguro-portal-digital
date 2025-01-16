@@ -49,22 +49,17 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
   }, []);
 
   const initializeForm = useCallback(() => {
-    // Remove any existing Typeform script
+    // First, remove any existing Typeform script
     const existingScript = document.querySelector('script[src*="typeform"]');
     if (existingScript) {
-      document.body.removeChild(existingScript);
+      existingScript.remove();
     }
 
-    // Clear existing form containers and create new ones
-    const existingForms = document.querySelectorAll(`[data-tf-live="${formId}"]`);
-    existingForms.forEach(form => {
-      if (form.parentElement) {
-        form.parentElement.innerHTML = '';
-        const newDiv = document.createElement('div');
-        newDiv.setAttribute('data-tf-live', formId);
-        form.parentElement.appendChild(newDiv);
-      }
-    });
+    // Clear the form container's content
+    const formContainer = document.querySelector(`[data-tf-live="${formId}"]`);
+    if (formContainer) {
+      formContainer.innerHTML = '';
+    }
 
     // Load and initialize new script
     return loadTypeformScript();
@@ -98,7 +93,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
     return () => {
       const script = document.querySelector('script[src*="typeform"]');
       if (script) {
-        document.body.removeChild(script);
+        script.remove();
       }
     };
   }, [initializeForm, toast]);
