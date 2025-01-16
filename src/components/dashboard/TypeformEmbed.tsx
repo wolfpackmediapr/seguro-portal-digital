@@ -12,62 +12,38 @@ interface TypeformEmbedProps {
 const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
   const { toast } = useToast();
 
-  const loadTypeformScript = useCallback(() => {
-    return new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = "//embed.typeform.com/next/embed.js";
-      script.async = true;
-
-      script.onload = () => {
-        setTimeout(() => {
-          try {
-            if (window.tf) {
-              window.tf.createWidget();
-              resolve();
-            } else {
-              setTimeout(() => {
-                if (window.tf) {
-                  window.tf.createWidget();
-                }
-                resolve();
-              }, 500);
-            }
-          } catch (error) {
-            console.warn("Non-critical error during Typeform initialization:", error);
-            resolve();
-          }
-        }, 100);
-      };
-
-      script.onerror = (error) => {
-        console.error("Error loading Typeform script:", error);
-        reject(error);
-      };
-
-      document.body.appendChild(script);
-    });
-  }, []);
-
-  const initializeForm = useCallback(() => {
-    // First, remove any existing Typeform script
+  const initializeTypeform = useCallback(() => {
+    // Remove existing script if any
     const existingScript = document.querySelector('script[src*="typeform"]');
     if (existingScript) {
       existingScript.remove();
     }
 
-    // Clear the form container's content
-    const formContainer = document.querySelector(`[data-tf-live="${formId}"]`);
-    if (formContainer) {
-      formContainer.innerHTML = '';
-    }
+    // Create and append new script
+    const script = document.createElement("script");
+    script.src = "//embed.typeform.com/next/embed.js";
+    script.async = true;
+    
+    script.onload = () => {
+      if (window.tf) {
+        window.tf.createWidget();
+      }
+    };
 
-    // Load and initialize new script
-    return loadTypeformScript();
-  }, [formId, loadTypeformScript]);
+    document.body.appendChild(script);
+  }, []);
 
-  const reloadForm = useCallback(async () => {
+  const handleReload = useCallback(() => {
     try {
-      await initializeForm();
+      // Clear the form container
+      const container = document.querySelector(`[data-tf-live="${formId}"]`);
+      if (container) {
+        container.innerHTML = '';
+      }
+      
+      // Reinitialize Typeform
+      initializeTypeform();
+      
       toast({
         description: "Formulario actualizado",
         duration: 2000,
@@ -79,16 +55,10 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         variant: "destructive",
       });
     }
-  }, [initializeForm, toast]);
+  }, [formId, initializeTypeform, toast]);
 
   useEffect(() => {
-    initializeForm().catch((error) => {
-      console.error("Error in initial form load:", error);
-      toast({
-        description: "Error al cargar el formulario",
-        variant: "destructive",
-      });
-    });
+    initializeTypeform();
 
     return () => {
       const script = document.querySelector('script[src*="typeform"]');
@@ -96,7 +66,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         script.remove();
       }
     };
-  }, [initializeForm, toast]);
+  }, [initializeTypeform]);
 
   return (
     <Card>
@@ -105,7 +75,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         <Button 
           variant="outline" 
           size="icon"
-          onClick={reloadForm}
+          onClick={handleReload}
           title="Actualizar formulario"
         >
           <RotateCw className="h-4 w-4" />
