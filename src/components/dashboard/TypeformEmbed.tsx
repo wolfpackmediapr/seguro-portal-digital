@@ -24,13 +24,6 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
       script.async = true;
 
       script.onload = () => {
-        // Check if the form container exists before trying to create widget
-        const formContainer = document.querySelector(`[data-tf-live="${formId}"]`);
-        if (!formContainer) {
-          reject(new Error("Form container not found"));
-          return;
-        }
-
         // Add a small delay to ensure DOM is ready
         setTimeout(() => {
           try {
@@ -38,8 +31,14 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
               window.tf.createWidget();
               resolve();
             } else {
-              console.warn("Typeform widget not immediately available, but form might still load");
-              resolve(); // Resolve anyway since forms often load successfully
+              console.warn("Typeform widget not immediately available, retrying...");
+              // Add another retry after a short delay
+              setTimeout(() => {
+                if (window.tf) {
+                  window.tf.createWidget();
+                }
+                resolve();
+              }, 500);
             }
           } catch (error) {
             console.warn("Non-critical error during Typeform initialization:", error);
@@ -57,37 +56,21 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
     });
   }, [formId]);
 
-  useEffect(() => {
-    loadTypeformScript().catch((error) => {
-      // Only show error toast if it's a script loading error
-      if (error.message === "Form container not found") {
-        toast({
-          description: "Error al cargar el formulario",
-          variant: "destructive",
-        });
-      }
-    });
-
-    return () => {
-      const script = document.querySelector('script[src*="typeform"]');
-      if (script) {
-        document.body.removeChild(script);
-      }
-    };
-  }, [loadTypeformScript, toast]);
-
   const reloadForm = useCallback(async () => {
     try {
+      // First, find and remove the existing form
       const iframe = document.querySelector(`iframe[data-tf-live="${formId}"]`);
       if (iframe) {
         const container = iframe.parentElement;
         if (container) {
           container.innerHTML = '';
           
+          // Create new container
           const newDiv = document.createElement('div');
           newDiv.setAttribute('data-tf-live', formId);
           container.appendChild(newDiv);
           
+          // Load the script and initialize the form
           await loadTypeformScript();
           
           toast({
@@ -104,6 +87,23 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
       });
     }
   }, [formId, loadTypeformScript, toast]);
+
+  useEffect(() => {
+    loadTypeformScript().catch((error) => {
+      console.error("Error in initial form load:", error);
+      toast({
+        description: "Error al cargar el formulario",
+        variant: "destructive",
+      });
+    });
+
+    return () => {
+      const script = document.querySelector('script[src*="typeform"]');
+      if (script) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [loadTypeformScript, toast]);
 
   return (
     <Card>

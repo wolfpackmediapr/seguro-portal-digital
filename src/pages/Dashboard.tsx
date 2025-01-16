@@ -1,6 +1,7 @@
 import DashboardNav from "@/components/dashboard/DashboardNav";
 import DashboardFooter from "@/components/dashboard/DashboardFooter";
 import TypeformEmbed from "@/components/dashboard/TypeformEmbed";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Dashboard = () => {
   return (
@@ -16,16 +17,25 @@ const Dashboard = () => {
           </nav>
         </aside>
 
-        <main className="flex-1 p-6 space-y-6">
-          <TypeformEmbed 
-            title="Alerta Radio"
-            formId="01JEWES3GA7PPQN2SPRNHSVHPG"
-          />
-          
-          <TypeformEmbed 
-            title="Alerta TV"
-            formId="01JEWEP95CN5YH8JCET8GEXRSK"
-          />
+        <main className="flex-1 p-6">
+          <Tabs defaultValue="radio" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
+              <TabsTrigger value="tv">Alerta TV</TabsTrigger>
+            </TabsList>
+            <TabsContent value="radio" className="mt-6">
+              <TypeformEmbed 
+                title="Alerta Radio"
+                formId="01JEWES3GA7PPQN2SPRNHSVHPG"
+              />
+            </TabsContent>
+            <TabsContent value="tv" className="mt-6">
+              <TypeformEmbed 
+                title="Alerta TV"
+                formId="01JEWEP95CN5YH8JCET8GEXRSK"
+              />
+            </TabsContent>
+          </Tabs>
         </main>
       </div>
 
