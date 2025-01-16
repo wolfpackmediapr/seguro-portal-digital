@@ -14,12 +14,6 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
   const loadTypeformScript = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
-      // First remove any existing Typeform script
-      const existingScript = document.querySelector('script[src*="typeform"]');
-      if (existingScript) {
-        document.body.removeChild(existingScript);
-      }
-
       const script = document.createElement("script");
       script.src = "//embed.typeform.com/next/embed.js";
       script.async = true;
@@ -54,30 +48,31 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
     });
   }, []);
 
+  const initializeForm = useCallback(() => {
+    // Remove any existing Typeform script
+    const existingScript = document.querySelector('script[src*="typeform"]');
+    if (existingScript) {
+      document.body.removeChild(existingScript);
+    }
+
+    // Clear existing form containers and create new ones
+    const existingForms = document.querySelectorAll(`[data-tf-live="${formId}"]`);
+    existingForms.forEach(form => {
+      if (form.parentElement) {
+        form.parentElement.innerHTML = '';
+        const newDiv = document.createElement('div');
+        newDiv.setAttribute('data-tf-live', formId);
+        form.parentElement.appendChild(newDiv);
+      }
+    });
+
+    // Load and initialize new script
+    return loadTypeformScript();
+  }, [formId, loadTypeformScript]);
+
   const reloadForm = useCallback(async () => {
     try {
-      // Remove all existing Typeform elements
-      const existingForms = document.querySelectorAll(`[data-tf-live="${formId}"]`);
-      existingForms.forEach(form => {
-        if (form.parentElement) {
-          form.parentElement.innerHTML = '';
-          
-          // Create new container
-          const newDiv = document.createElement('div');
-          newDiv.setAttribute('data-tf-live', formId);
-          form.parentElement.appendChild(newDiv);
-        }
-      });
-
-      // Remove existing script and load a fresh one
-      const existingScript = document.querySelector('script[src*="typeform"]');
-      if (existingScript) {
-        document.body.removeChild(existingScript);
-      }
-
-      // Load fresh script and initialize
-      await loadTypeformScript();
-      
+      await initializeForm();
       toast({
         description: "Formulario actualizado",
         duration: 2000,
@@ -89,10 +84,10 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         variant: "destructive",
       });
     }
-  }, [formId, loadTypeformScript, toast]);
+  }, [initializeForm, toast]);
 
   useEffect(() => {
-    loadTypeformScript().catch((error) => {
+    initializeForm().catch((error) => {
       console.error("Error in initial form load:", error);
       toast({
         description: "Error al cargar el formulario",
@@ -106,7 +101,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         document.body.removeChild(script);
       }
     };
-  }, [loadTypeformScript, toast]);
+  }, [initializeForm, toast]);
 
   return (
     <Card>
