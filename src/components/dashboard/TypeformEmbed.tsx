@@ -30,7 +30,15 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         setTimeout(() => {
           if (window.tf) {
             try {
-              window.tf.createWidget();
+              window.tf.createWidget({
+                container: document.querySelector(`[data-tf-live="${formId}"]`),
+                embedId: formId,
+                options: {
+                  hideFooter: true,
+                  hideHeaders: true,
+                  opacity: 0,
+                }
+              });
               resolve();
             } catch (error) {
               console.error("Error creating Typeform widget:", error);
@@ -49,7 +57,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
       document.body.appendChild(script);
     });
-  }, []);
+  }, [formId]);
 
   const handleReload = useCallback(async () => {
     try {
