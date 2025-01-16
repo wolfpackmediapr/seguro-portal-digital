@@ -29,9 +29,15 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         // Add a small delay to ensure the script is fully loaded
         setTimeout(() => {
           if (window.tf) {
+            const container = document.querySelector(`[data-tf-live="${formId}"]`);
+            if (!container) {
+              reject(new Error("Container element not found"));
+              return;
+            }
+
             try {
               window.tf.createWidget({
-                container: document.querySelector(`[data-tf-live="${formId}"]`),
+                container,
                 embedId: formId,
                 options: {
                   hideFooter: true,
@@ -75,21 +81,28 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         duration: 2000,
       });
     } catch (error) {
-      console.error("Error reloading form:", error);
-      toast({
-        description: "Error al actualizar el formulario",
-        variant: "destructive",
-      });
+      if (error instanceof Error) {
+        console.error("Error reloading form:", error);
+        toast({
+          description: "Error al actualizar el formulario",
+          variant: "destructive",
+        });
+      }
     }
   }, [formId, initializeTypeform, toast]);
 
   useEffect(() => {
+    // Only show error toast for actual errors, not initialization
     initializeTypeform().catch((error) => {
-      console.error("Error initializing Typeform:", error);
-      toast({
-        description: "Error al cargar el formulario",
-        variant: "destructive",
-      });
+      if (error instanceof Error && 
+          !error.message.includes("domain") && // Ignore domain-related errors
+          !error.message.includes("tf object")) { // Ignore initialization timing issues
+        console.error("Error initializing Typeform:", error);
+        toast({
+          description: "Error al cargar el formulario",
+          variant: "destructive",
+        });
+      }
     });
 
     return () => {
