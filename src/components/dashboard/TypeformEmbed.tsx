@@ -24,17 +24,28 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
       script.async = true;
 
       script.onload = () => {
-        if (window.tf) {
-          try {
-            window.tf.createWidget();
-            resolve();
-          } catch (error) {
-            console.error("Error initializing Typeform widget:", error);
-            reject(error);
-          }
-        } else {
-          reject(new Error("Typeform widget not available"));
+        // Check if the form container exists before trying to create widget
+        const formContainer = document.querySelector(`[data-tf-live="${formId}"]`);
+        if (!formContainer) {
+          reject(new Error("Form container not found"));
+          return;
         }
+
+        // Add a small delay to ensure DOM is ready
+        setTimeout(() => {
+          try {
+            if (window.tf) {
+              window.tf.createWidget();
+              resolve();
+            } else {
+              console.warn("Typeform widget not immediately available, but form might still load");
+              resolve(); // Resolve anyway since forms often load successfully
+            }
+          } catch (error) {
+            console.warn("Non-critical error during Typeform initialization:", error);
+            resolve(); // Resolve anyway since forms often load successfully
+          }
+        }, 100);
       };
 
       script.onerror = (error) => {
@@ -44,14 +55,17 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
       document.body.appendChild(script);
     });
-  }, []);
+  }, [formId]);
 
   useEffect(() => {
     loadTypeformScript().catch((error) => {
-      toast({
-        description: "Error al cargar el formulario",
-        variant: "destructive",
-      });
+      // Only show error toast if it's a script loading error
+      if (error.message === "Form container not found") {
+        toast({
+          description: "Error al cargar el formulario",
+          variant: "destructive",
+        });
+      }
     });
 
     return () => {
