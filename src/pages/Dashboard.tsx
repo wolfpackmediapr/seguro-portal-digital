@@ -8,7 +8,7 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole } from "@/components/admin/types";
-import { Settings } from "lucide-react";
+import { Settings, Home, List } from "lucide-react";
 
 const Dashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -38,8 +38,13 @@ const Dashboard = () => {
       <div className="flex flex-1">
         <aside className="w-64 bg-white border-r p-4">
           <nav className="space-y-2">
-            <a href="#" className="block px-4 py-2 rounded hover:bg-gray-100">
+            <a href="#" className="flex items-center px-4 py-2 rounded hover:bg-gray-100">
+              <Home className="w-4 h-4 mr-2" />
               Inicio
+            </a>
+            <a href="#" className="flex items-center px-4 py-2 rounded hover:bg-gray-100">
+              <List className="w-4 h-4 mr-2" />
+              Logs
             </a>
             {isSuperAdmin && (
               <a href="#" className="flex items-center px-4 py-2 rounded hover:bg-gray-100 text-gray-600">
@@ -51,31 +56,44 @@ const Dashboard = () => {
         </aside>
 
         <main className="flex-1 p-6">
-          <Tabs defaultValue="radio" className="w-full">
-            <TabsList>
-              <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
-              <TabsTrigger value="tv">Alerta TV</TabsTrigger>
+          <Tabs defaultValue="inicio" className="w-full">
+            <TabsList className="hidden">
+              <TabsTrigger value="inicio">Inicio</TabsTrigger>
+              <TabsTrigger value="logs">Logs</TabsTrigger>
               {isSuperAdmin && (
                 <TabsTrigger value="settings">Configuración</TabsTrigger>
               )}
             </TabsList>
             
-            <TabsContent value="radio" className="mt-6">
-              <TypeformEmbed 
-                title="Alerta Radio"
-                formId="01JEWES3GA7PPQN2SPRNHSVHPG"
-              />
+            <TabsContent value="inicio">
+              <Tabs defaultValue="radio" className="w-full">
+                <TabsList>
+                  <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
+                  <TabsTrigger value="tv">Alerta TV</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="radio" className="mt-6">
+                  <TypeformEmbed 
+                    title="Alerta Radio"
+                    formId="01JEWES3GA7PPQN2SPRNHSVHPG"
+                  />
+                </TabsContent>
+                
+                <TabsContent value="tv" className="mt-6">
+                  <TypeformEmbed 
+                    title="Alerta TV"
+                    formId="01JEWEP95CN5YH8JCET8GEXRSK"
+                  />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
-            
-            <TabsContent value="tv" className="mt-6">
-              <TypeformEmbed 
-                title="Alerta TV"
-                formId="01JEWEP95CN5YH8JCET8GEXRSK"
-              />
+
+            <TabsContent value="logs">
+              <AdminLogs />
             </TabsContent>
 
             {isSuperAdmin && (
-              <TabsContent value="settings" className="mt-6">
+              <TabsContent value="settings">
                 <Tabs defaultValue="users" className="w-full">
                   <TabsList>
                     <TabsTrigger value="users">Users</TabsTrigger>
