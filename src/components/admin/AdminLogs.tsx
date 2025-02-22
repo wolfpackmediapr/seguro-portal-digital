@@ -28,8 +28,13 @@ export function AdminLogs() {
       const { data, error } = await supabase
         .from('user_activity_logs')
         .select(`
-          *,
-          users:user_id(
+          id,
+          action_type,
+          details,
+          created_at,
+          session_id,
+          user_id,
+          user:user_id (
             email
           )
         `)
@@ -37,10 +42,11 @@ export function AdminLogs() {
         .limit(100);
 
       if (error) throw error;
-      return (data as (UserActivityLog & { users: UserWithEmail })[]).map(log => ({
+      
+      return (data || []).map(log => ({
         ...log,
-        user: log.users // Reshape to match expected structure
-      }));
+        user: { email: log.user?.email || 'Unknown' }
+      })) as (UserActivityLog & { user: UserWithEmail })[];
     },
   });
 
@@ -50,8 +56,15 @@ export function AdminLogs() {
       const { data, error } = await supabase
         .from('user_sessions')
         .select(`
-          *,
-          users:user_id(
+          id,
+          user_id,
+          login_time,
+          logout_time,
+          last_ping,
+          active,
+          metadata,
+          created_at,
+          user:user_id (
             email
           )
         `)
@@ -59,10 +72,11 @@ export function AdminLogs() {
         .limit(100);
 
       if (error) throw error;
-      return (data as (UserSession & { users: UserWithEmail })[]).map(session => ({
+      
+      return (data || []).map(session => ({
         ...session,
-        user: session.users // Reshape to match expected structure
-      }));
+        user: { email: session.user?.email || 'Unknown' }
+      })) as (UserSession & { user: UserWithEmail })[];
     },
   });
 
