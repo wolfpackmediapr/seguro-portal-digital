@@ -8,10 +8,12 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole } from "@/components/admin/types";
-import { Settings, Home, List } from "lucide-react";
+import { Home, List, Settings } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [activeTab, setActiveTab] = useState("inicio");
 
   useEffect(() => {
     const checkSuperAdmin = async () => {
@@ -31,24 +33,49 @@ const Dashboard = () => {
     checkSuperAdmin();
   }, []);
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <DashboardNav />
 
       <div className="flex flex-1">
-        <aside className="w-64 bg-white border-r p-4">
-          <nav className="space-y-2">
-            <a href="#" className="flex items-center px-4 py-2 rounded hover:bg-gray-100">
-              <Home className="w-4 h-4 mr-2" />
+        <aside className="w-64 bg-white border-r">
+          <nav className="py-4">
+            <a 
+              href="#" 
+              onClick={() => handleTabChange("inicio")}
+              className={cn(
+                "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
+                activeTab === "inicio" ? "bg-gray-100 text-gray-900" : "text-gray-600"
+              )}
+            >
+              <Home className="w-4 h-4 mr-3" />
               Inicio
             </a>
-            <a href="#" className="flex items-center px-4 py-2 rounded hover:bg-gray-100">
-              <List className="w-4 h-4 mr-2" />
+            <a 
+              href="#" 
+              onClick={() => handleTabChange("logs")}
+              className={cn(
+                "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
+                activeTab === "logs" ? "bg-gray-100 text-gray-900" : "text-gray-600"
+              )}
+            >
+              <List className="w-4 h-4 mr-3" />
               Logs
             </a>
             {isSuperAdmin && (
-              <a href="#" className="flex items-center px-4 py-2 rounded hover:bg-gray-100 text-gray-600">
-                <Settings className="w-4 h-4 mr-2" />
+              <a 
+                href="#" 
+                onClick={() => handleTabChange("settings")}
+                className={cn(
+                  "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
+                  activeTab === "settings" ? "bg-gray-100 text-gray-900" : "text-gray-600"
+                )}
+              >
+                <Settings className="w-4 h-4 mr-3" />
                 Configuración
               </a>
             )}
@@ -56,8 +83,8 @@ const Dashboard = () => {
         </aside>
 
         <main className="flex-1 p-6">
-          <Tabs defaultValue="inicio" className="w-full">
-            <TabsList>
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="mb-6">
               <TabsTrigger value="inicio">Inicio</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               {isSuperAdmin && (
@@ -65,7 +92,7 @@ const Dashboard = () => {
               )}
             </TabsList>
             
-            <TabsContent value="inicio" className="mt-6">
+            <TabsContent value="inicio">
               <Tabs defaultValue="radio" className="w-full">
                 <TabsList>
                   <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
@@ -88,12 +115,12 @@ const Dashboard = () => {
               </Tabs>
             </TabsContent>
 
-            <TabsContent value="logs" className="mt-6">
+            <TabsContent value="logs">
               <AdminLogs />
             </TabsContent>
 
             {isSuperAdmin && (
-              <TabsContent value="settings" className="mt-6">
+              <TabsContent value="settings">
                 <Tabs defaultValue="users" className="w-full">
                   <TabsList>
                     <TabsTrigger value="users">Users</TabsTrigger>
