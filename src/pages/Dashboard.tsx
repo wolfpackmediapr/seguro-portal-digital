@@ -8,6 +8,7 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole } from "@/components/admin/types";
+import { Settings } from "lucide-react";
 
 const Dashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -40,19 +41,22 @@ const Dashboard = () => {
             <a href="#" className="block px-4 py-2 rounded hover:bg-gray-100">
               Inicio
             </a>
+            {isSuperAdmin && (
+              <a href="#" className="flex items-center px-4 py-2 rounded hover:bg-gray-100 text-gray-600">
+                <Settings className="w-4 h-4 mr-2" />
+                Configuración
+              </a>
+            )}
           </nav>
         </aside>
 
         <main className="flex-1 p-6">
           <Tabs defaultValue="radio" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList>
               <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
               <TabsTrigger value="tv">Alerta TV</TabsTrigger>
               {isSuperAdmin && (
-                <>
-                  <TabsTrigger value="users">Users</TabsTrigger>
-                  <TabsTrigger value="logs">Logs</TabsTrigger>
-                </>
+                <TabsTrigger value="settings">Configuración</TabsTrigger>
               )}
             </TabsList>
             
@@ -71,15 +75,22 @@ const Dashboard = () => {
             </TabsContent>
 
             {isSuperAdmin && (
-              <>
-                <TabsContent value="users" className="mt-6">
-                  <UserManagement />
-                </TabsContent>
-                
-                <TabsContent value="logs" className="mt-6">
-                  <AdminLogs />
-                </TabsContent>
-              </>
+              <TabsContent value="settings" className="mt-6">
+                <Tabs defaultValue="users" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="users">Users</TabsTrigger>
+                    <TabsTrigger value="logs">Logs</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="users" className="mt-6">
+                    <UserManagement />
+                  </TabsContent>
+                  
+                  <TabsContent value="logs" className="mt-6">
+                    <AdminLogs />
+                  </TabsContent>
+                </Tabs>
+              </TabsContent>
             )}
           </Tabs>
         </main>
