@@ -25,58 +25,54 @@ export function AdminLogs() {
   const { data: activityLogs } = useQuery({
     queryKey: ['admin-activity-logs'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get the activity logs
+      const { data: logsData, error: logsError } = await supabase
         .from('user_activity_logs')
-        .select(`
-          id,
-          action_type,
-          details,
-          created_at,
-          session_id,
-          user_id,
-          user:user_id (
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (logsError) throw logsError;
       
-      return (data || []).map(log => ({
-        ...log,
-        user: { email: log.user?.email || 'Unknown' }
-      })) as (UserActivityLog & { user: UserWithEmail })[];
+      // Then, for each log, get the user email from auth.users
+      const logsWithUsers = await Promise.all((logsData || []).map(async (log) => {
+        const { data: userData } = await supabase
+          .auth.admin.getUserById(log.user_id);
+        
+        return {
+          ...log,
+          user: { email: userData?.user?.email || 'Unknown' }
+        };
+      }));
+
+      return logsWithUsers as (UserActivityLog & { user: UserWithEmail })[];
     },
   });
 
   const { data: sessions } = useQuery({
     queryKey: ['admin-sessions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First, get the sessions
+      const { data: sessionsData, error: sessionsError } = await supabase
         .from('user_sessions')
-        .select(`
-          id,
-          user_id,
-          login_time,
-          logout_time,
-          last_ping,
-          active,
-          metadata,
-          created_at,
-          user:user_id (
-            email
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (sessionsError) throw sessionsError;
       
-      return (data || []).map(session => ({
-        ...session,
-        user: { email: session.user?.email || 'Unknown' }
-      })) as (UserSession & { user: UserWithEmail })[];
+      // Then, for each session, get the user email from auth.users
+      const sessionsWithUsers = await Promise.all((sessionsData || []).map(async (session) => {
+        const { data: userData } = await supabase
+          .auth.admin.getUserById(session.user_id);
+        
+        return {
+          ...session,
+          user: { email: userData?.user?.email || 'Unknown' }
+        };
+      }));
+
+      return sessionsWithUsers as (UserSession & { user: UserWithEmail })[];
     },
   });
 
