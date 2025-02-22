@@ -20,3 +20,23 @@ export interface AdminUser {
   email: string;
   role?: string;
 }
+
+export interface UserSession {
+  id: string;
+  user_id: string;
+  login_time: string;
+  logout_time: string | null;
+  last_ping: string;
+  active: boolean;
+  metadata: Record<string, any> | null;
+  created_at: string;
+}
+
+export interface UserActivityLog {
+  id: string;
+  session_id: string | null;
+  user_id: string;
+  action_type: string;
+  details: Record<string, any> | null;
+  created_at: string;
+}
