@@ -13,12 +13,7 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-
-interface User {
-  id: string;
-  email: string;
-  role: string;
-}
+import { AdminUser } from './types';
 
 export function UserManagement() {
   const [email, setEmail] = useState('');
@@ -28,9 +23,24 @@ export function UserManagement() {
   const { data: users, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      const { data: { users }, error } = await supabase.auth.admin.listUsers()
-      if (error) throw error
-      return users
+      // Get all users
+      const { data: { users: authUsers }, error: usersError } = await supabase.auth.admin.listUsers();
+      if (usersError) throw usersError;
+
+      // Get their roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+      if (rolesError) throw rolesError;
+
+      // Combine users with their roles
+      const usersWithRoles = authUsers.map(user => ({
+        id: user.id,
+        email: user.email!,
+        role: roles?.find(r => r.user_id === user.id)?.role || 'user'
+      }));
+
+      return usersWithRoles as AdminUser[];
     }
   });
 
@@ -53,7 +63,7 @@ export function UserManagement() {
       setPassword('');
       setRole('user');
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       toast.error('Error creating user: ' + error.message);
     }
   };
@@ -105,7 +115,7 @@ export function UserManagement() {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">User List</h2>
         <div className="border rounded-lg">
-          {users?.map((user: User) => (
+          {users?.map((user) => (
             <div key={user.id} className="p-4 border-b last:border-b-0">
               <div className="flex justify-between items-center">
                 <div>

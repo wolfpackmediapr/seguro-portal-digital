@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
+import { UserRole } from "@/components/admin/types";
 
 const Dashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -15,14 +16,14 @@ const Dashboard = () => {
     const checkSuperAdmin = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const { data: roles } = await supabase
+        const { data: role } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', session.user.id)
           .eq('role', 'super_admin')
           .single();
         
-        setIsSuperAdmin(!!roles);
+        setIsSuperAdmin(!!role);
       }
     };
 

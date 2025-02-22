@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { UserManagementLog } from './types';
 
 export function AdminLogs() {
   const { data: logs } = useQuery({
@@ -20,7 +21,7 @@ export function AdminLogs() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as UserManagementLog[];
     },
   });
 
