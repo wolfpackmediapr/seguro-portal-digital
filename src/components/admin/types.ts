@@ -1,4 +1,14 @@
 
+export type LogActionType = 
+  | 'login'
+  | 'logout'
+  | 'create_user'
+  | 'update_user'
+  | 'delete_user'
+  | 'session_start'
+  | 'session_end'
+  | 'feature_access';
+
 export interface UserManagementLog {
   id: string;
   action_type: string;
@@ -36,7 +46,7 @@ export interface UserActivityLog {
   id: string;
   session_id: string | null;
   user_id: string;
-  action_type: string;
+  action_type: LogActionType;
   details: Record<string, any> | null;
   created_at: string;
 }

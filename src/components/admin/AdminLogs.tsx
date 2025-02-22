@@ -15,6 +15,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { UserActivityLog, UserSession } from './types';
 import { format } from 'date-fns';
 
+interface UserWithEmail {
+  email: string;
+}
+
 export function AdminLogs() {
   const [activeTab, setActiveTab] = useState<'activity' | 'sessions'>('activity');
 
@@ -25,7 +29,7 @@ export function AdminLogs() {
         .from('user_activity_logs')
         .select(`
           *,
-          user:user_id(
+          users:user_id(
             email
           )
         `)
@@ -33,7 +37,10 @@ export function AdminLogs() {
         .limit(100);
 
       if (error) throw error;
-      return data as (UserActivityLog & { user: { email: string } })[];
+      return (data as (UserActivityLog & { users: UserWithEmail })[]).map(log => ({
+        ...log,
+        user: log.users // Reshape to match expected structure
+      }));
     },
   });
 
@@ -44,7 +51,7 @@ export function AdminLogs() {
         .from('user_sessions')
         .select(`
           *,
-          user:user_id(
+          users:user_id(
             email
           )
         `)
@@ -52,7 +59,10 @@ export function AdminLogs() {
         .limit(100);
 
       if (error) throw error;
-      return data as (UserSession & { user: { email: string } })[];
+      return (data as (UserSession & { users: UserWithEmail })[]).map(session => ({
+        ...session,
+        user: session.users // Reshape to match expected structure
+      }));
     },
   });
 

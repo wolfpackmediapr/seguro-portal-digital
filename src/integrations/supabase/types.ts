@@ -9,6 +9,41 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      user_activity_logs: {
+        Row: {
+          action_type: Database["public"]["Enums"]["log_action_type"]
+          created_at: string | null
+          details: Json | null
+          id: string
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["log_action_type"]
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["log_action_type"]
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_management_logs: {
         Row: {
           action_type: string
@@ -57,6 +92,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          active: boolean
+          created_at: string | null
+          id: string
+          last_ping: string | null
+          login_time: string
+          logout_time: string | null
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          last_ping?: string | null
+          login_time?: string
+          logout_time?: string | null
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string | null
+          id?: string
+          last_ping?: string | null
+          login_time?: string
+          logout_time?: string | null
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -72,6 +140,15 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "user"
+      log_action_type:
+        | "login"
+        | "logout"
+        | "create_user"
+        | "update_user"
+        | "delete_user"
+        | "session_start"
+        | "session_end"
+        | "feature_access"
     }
     CompositeTypes: {
       [_ in never]: never
