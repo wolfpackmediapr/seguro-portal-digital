@@ -54,6 +54,30 @@ serve(async (req) => {
     const { action, ...data } = await req.json()
 
     switch (action) {
+      case 'list': {
+        // Get all users from auth.users
+        const { data: { users: authUsers }, error: usersError } = await supabase.auth.admin.listUsers()
+        if (usersError) throw usersError
+
+        // Get all user roles
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+        if (rolesError) throw rolesError
+
+        // Combine users with their roles
+        const usersWithRoles = authUsers.map(authUser => ({
+          id: authUser.id,
+          email: authUser.email,
+          role: userRoles?.find(r => r.user_id === authUser.id)?.role || 'user'
+        }))
+
+        return new Response(JSON.stringify(usersWithRoles), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      }
+
       case 'create': {
         const { email, password, role } = data as CreateUserRequest
         

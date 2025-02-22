@@ -23,24 +23,12 @@ export function UserManagement() {
   const { data: users, refetch } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
-      // Get all users
-      const { data: { users: authUsers }, error: usersError } = await supabase.auth.admin.listUsers();
-      if (usersError) throw usersError;
+      const { data, error } = await supabase.functions.invoke('manage-users', {
+        body: { action: 'list' }
+      });
 
-      // Get their roles
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-      if (rolesError) throw rolesError;
-
-      // Combine users with their roles
-      const usersWithRoles = authUsers.map(user => ({
-        id: user.id,
-        email: user.email!,
-        role: roles?.find(r => r.user_id === user.id)?.role || 'user'
-      }));
-
-      return usersWithRoles as AdminUser[];
+      if (error) throw error;
+      return data as AdminUser[];
     }
   });
 
