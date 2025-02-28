@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from "react";
+
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RotateCw } from "lucide-react";
@@ -11,13 +12,22 @@ interface TypeformEmbedProps {
 
 const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
 
   const initializeTypeform = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
+      setIsLoading(true);
+
       // Remove existing script if any
       const existingScript = document.querySelector('script[src*="typeform"]');
       if (existingScript) {
         existingScript.remove();
+      }
+
+      // Clear the form container
+      const container = document.querySelector(`[data-tf-live="${formId}"]`);
+      if (container) {
+        container.innerHTML = '';
       }
 
       // Create and append new script
@@ -29,36 +39,46 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         // Add a small delay to ensure the script is fully loaded
         setTimeout(() => {
           if (window.tf) {
-            const container = document.querySelector(`[data-tf-live="${formId}"]`);
-            if (!container) {
-              reject(new Error("Container element not found"));
-              return;
-            }
-
             try {
+              // Check if the container exists
+              const formContainer = document.querySelector(`[data-tf-live="${formId}"]`);
+              if (!formContainer) {
+                reject(new Error("Container element not found"));
+                setIsLoading(false);
+                return;
+              }
+
+              // Create the widget with a valid domain
               window.tf.createWidget({
-                container,
+                container: formContainer,
                 embedId: formId,
                 options: {
                   hideFooter: true,
                   hideHeaders: true,
                   opacity: 0,
-                }
+                },
+                // Ensure we're providing a valid domain for the widget
+                domain: window.location.hostname || 'localhost'
               });
+
               resolve();
+              setIsLoading(false);
             } catch (error) {
               console.error("Error creating Typeform widget:", error);
               reject(error);
+              setIsLoading(false);
             }
           } else {
             reject(new Error("Typeform script loaded but tf object not found"));
+            setIsLoading(false);
           }
-        }, 100);
+        }, 300); // Increase timeout to ensure script is fully loaded
       };
 
       script.onerror = (error) => {
         console.error("Error loading Typeform script:", error);
         reject(error);
+        setIsLoading(false);
       };
 
       document.body.appendChild(script);
@@ -67,11 +87,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
   const handleReload = useCallback(async () => {
     try {
-      // Clear the form container
-      const container = document.querySelector(`[data-tf-live="${formId}"]`);
-      if (container) {
-        container.innerHTML = '';
-      }
+      setIsLoading(true);
       
       // Reinitialize Typeform
       await initializeTypeform();
@@ -88,6 +104,8 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
           variant: "destructive",
         });
       }
+    } finally {
+      setIsLoading(false);
     }
   }, [formId, initializeTypeform, toast]);
 
@@ -121,13 +139,14 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
           variant="outline" 
           size="icon"
           onClick={handleReload}
+          disabled={isLoading}
           title="Actualizar formulario"
         >
-          <RotateCw className="h-4 w-4" />
+          <RotateCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
       </CardHeader>
       <CardContent>
-        <div data-tf-live={formId}></div>
+        <div data-tf-live={formId} className="min-h-[400px]"></div>
       </CardContent>
     </Card>
   );
