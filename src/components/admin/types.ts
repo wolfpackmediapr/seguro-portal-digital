@@ -29,6 +29,12 @@ export interface AdminUser {
   id: string;
   email: string;
   role?: string;
+  disabled?: boolean;
+  created_at: string;
+  last_sign_in_at?: string;
+  phone?: string;
+  app_metadata?: Record<string, any>;
+  user_metadata?: Record<string, any>;
 }
 
 export interface UserSession {

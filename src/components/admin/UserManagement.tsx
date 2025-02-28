@@ -14,13 +14,32 @@ import {
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { AdminUser } from './types';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export function UserManagement() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'admin' | 'user'>('user');
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
 
-  const { data: users, refetch } = useQuery({
+  const { data: users, refetch, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('manage-users', {
@@ -56,65 +75,257 @@ export function UserManagement() {
     }
   };
 
+  const handleViewUserDetails = (user: AdminUser) => {
+    setSelectedUser(user);
+    setIsUserDetailsOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+
+    try {
+      const response = await supabase.functions.invoke('manage-users', {
+        body: {
+          action: 'delete',
+          userId: selectedUser.id
+        }
+      });
+
+      if (response.error) throw response.error;
+      
+      toast.success('User deleted successfully');
+      setIsConfirmDeleteOpen(false);
+      setSelectedUser(null);
+      refetch();
+    } catch (error: any) {
+      toast.error('Error deleting user: ' + error.message);
+    }
+  };
+
+  const handleToggleUserStatus = async (user: AdminUser) => {
+    try {
+      const newStatus = user.disabled ? 'active' : 'suspended';
+      const response = await supabase.functions.invoke('manage-users', {
+        body: {
+          action: 'updateStatus',
+          userId: user.id,
+          disabled: !user.disabled
+        }
+      });
+
+      if (response.error) throw response.error;
+      
+      toast.success(`User ${newStatus} successfully`);
+      refetch();
+    } catch (error: any) {
+      toast.error(`Error updating user status: ${error.message}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">Create New User</h2>
-        <form onSubmit={handleCreateUser} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New User</CardTitle>
+          <CardDescription>Add a new user to the system</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleCreateUser} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={role} onValueChange={(value: 'admin' | 'user') => setRole(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="user">User</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button type="submit">Create User</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>User List</CardTitle>
+          <CardDescription>Manage existing users</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p>Loading users...</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users?.map((user) => (
+                  <TableRow key={user.id} className="cursor-pointer">
+                    <TableCell 
+                      className="font-medium"
+                      onClick={() => handleViewUserDetails(user)}
+                    >
+                      {user.email}
+                    </TableCell>
+                    <TableCell onClick={() => handleViewUserDetails(user)}>
+                      {user.role || 'user'}
+                    </TableCell>
+                    <TableCell onClick={() => handleViewUserDetails(user)}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        user.disabled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                      }`}>
+                        {user.disabled ? 'Suspended' : 'Active'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleToggleUserStatus(user)}
+                        >
+                          {user.disabled ? 'Activate' : 'Suspend'}
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsConfirmDeleteOpen(true);
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* User Details Dialog */}
+      <Dialog open={isUserDetailsOpen} onOpenChange={setIsUserDetailsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              Complete information for {selectedUser?.email}
+            </DialogDescription>
+          </DialogHeader>
           
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select value={role} onValueChange={(value: 'admin' | 'user') => setRole(value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="user">User</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Button type="submit">Create User</Button>
-        </form>
-      </div>
-
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold">User List</h2>
-        <div className="border rounded-lg">
-          {users?.map((user) => (
-            <div key={user.id} className="p-4 border-b last:border-b-0">
-              <div className="flex justify-between items-center">
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="font-medium">{user.email}</p>
-                  <p className="text-sm text-gray-500">{user.role}</p>
+                  <Label className="text-sm text-muted-foreground">User ID</Label>
+                  <p className="font-mono text-xs break-all">{selectedUser.id}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Status</Label>
+                  <p>{selectedUser.disabled ? 'Suspended' : 'Active'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Email</Label>
+                  <p>{selectedUser.email}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Role</Label>
+                  <p>{selectedUser.role || 'user'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Created At</Label>
+                  <p>{new Date(selectedUser.created_at).toLocaleString()}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-muted-foreground">Last Sign In</Label>
+                  <p>{selectedUser.last_sign_in_at ? new Date(selectedUser.last_sign_in_at).toLocaleString() : 'Never'}</p>
                 </div>
               </div>
+              
+              <div className="pt-4 flex justify-end space-x-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsUserDetailsOpen(false)}
+                >
+                  Close
+                </Button>
+                <Button 
+                  variant={selectedUser.disabled ? 'default' : 'secondary'}
+                  onClick={() => {
+                    handleToggleUserStatus(selectedUser);
+                    setIsUserDetailsOpen(false);
+                  }}
+                >
+                  {selectedUser.disabled ? 'Activate User' : 'Suspend User'}
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => {
+                    setIsUserDetailsOpen(false);
+                    setIsConfirmDeleteOpen(true);
+                  }}
+                >
+                  Delete User
+                </Button>
+              </div>
             </div>
-          ))}
-        </div>
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Delete Dialog */}
+      <Dialog open={isConfirmDeleteOpen} onOpenChange={setIsConfirmDeleteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete user {selectedUser?.email}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex space-x-2 justify-end">
+            <Button variant="outline" onClick={() => setIsConfirmDeleteOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser}>
+              Delete User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
