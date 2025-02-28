@@ -38,6 +38,9 @@ export function UserManagement() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [generatedPassword, setGeneratedPassword] = useState('');
 
   const { data: users, refetch, isLoading } = useQuery({
     queryKey: ['users'],
@@ -119,6 +122,42 @@ export function UserManagement() {
       refetch();
     } catch (error: any) {
       toast.error(`Error updating user status: ${error.message}`);
+    }
+  };
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+    let result = '';
+    for (let i = 0; i < 12; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  };
+
+  const handleGeneratePassword = () => {
+    const generated = generateRandomPassword();
+    setNewPassword(generated);
+    setGeneratedPassword(generated);
+  };
+
+  const handleResetUserPassword = async () => {
+    if (!selectedUser || !newPassword) return;
+
+    try {
+      const response = await supabase.functions.invoke('manage-users', {
+        body: {
+          action: 'resetPassword',
+          userId: selectedUser.id,
+          password: newPassword
+        }
+      });
+
+      if (response.error) throw response.error;
+      
+      toast.success('Password reset successfully');
+      setIsPasswordResetOpen(false);
+    } catch (error: any) {
+      toast.error('Error resetting password: ' + error.message);
     }
   };
 
@@ -276,6 +315,21 @@ export function UserManagement() {
                 </div>
               </div>
               
+              <div className="pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsUserDetailsOpen(false);
+                    setIsPasswordResetOpen(true);
+                    setNewPassword('');
+                    setGeneratedPassword('');
+                  }}
+                  className="w-full"
+                >
+                  Reset Password
+                </Button>
+              </div>
+              
               <div className="pt-4 flex justify-end space-x-2">
                 <Button 
                   variant="outline" 
@@ -304,6 +358,63 @@ export function UserManagement() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={isPasswordResetOpen} onOpenChange={setIsPasswordResetOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reset User Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for {selectedUser?.email}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">New Password</Label>
+              <div className="flex space-x-2">
+                <Input
+                  id="newPassword"
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="flex-1"
+                />
+                <Button 
+                  variant="outline" 
+                  onClick={handleGeneratePassword}
+                >
+                  Generate
+                </Button>
+              </div>
+            </div>
+            
+            {generatedPassword && (
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-md">
+                <p className="text-sm font-semibold text-amber-800">Generated Password:</p>
+                <p className="font-mono text-amber-900">{generatedPassword}</p>
+                <p className="text-xs text-amber-700 mt-2">Be sure to copy this password before closing this dialog.</p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsPasswordResetOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="default"
+              onClick={handleResetUserPassword}
+              disabled={!newPassword}
+            >
+              Reset Password
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

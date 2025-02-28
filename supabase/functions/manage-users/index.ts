@@ -20,6 +20,20 @@ interface UpdateUserRequest {
   role?: 'admin' | 'user';
 }
 
+interface UpdateStatusRequest {
+  userId: string;
+  disabled: boolean;
+}
+
+interface DeleteUserRequest {
+  userId: string;
+}
+
+interface ResetPasswordRequest {
+  userId: string;
+  password: string;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -67,8 +81,7 @@ serve(async (req) => {
 
         // Combine users with their roles
         const usersWithRoles = authUsers.map(authUser => ({
-          id: authUser.id,
-          email: authUser.email,
+          ...authUser,
           role: userRoles?.find(r => r.user_id === authUser.id)?.role || 'user'
         }))
 
@@ -137,6 +150,74 @@ serve(async (req) => {
           details: { email, role }
         })
 
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      }
+      
+      case 'updateStatus': {
+        const { userId, disabled } = data as UpdateStatusRequest
+        
+        const { error } = await supabase.auth.admin.updateUserById(
+          userId,
+          { banned: disabled }
+        )
+        
+        if (error) throw error
+        
+        // Log the action
+        await supabase.from('user_management_logs').insert({
+          action_type: 'update_user_status',
+          performed_by: user.id,
+          target_user: userId,
+          details: { disabled }
+        })
+        
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      }
+      
+      case 'delete': {
+        const { userId } = data as DeleteUserRequest
+        
+        const { error } = await supabase.auth.admin.deleteUser(userId)
+        
+        if (error) throw error
+        
+        // Log the action
+        await supabase.from('user_management_logs').insert({
+          action_type: 'delete_user',
+          performed_by: user.id,
+          target_user: userId
+        })
+        
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      }
+      
+      case 'resetPassword': {
+        const { userId, password } = data as ResetPasswordRequest
+        
+        const { error } = await supabase.auth.admin.updateUserById(
+          userId,
+          { password }
+        )
+        
+        if (error) throw error
+        
+        // Log the action
+        await supabase.from('user_management_logs').insert({
+          action_type: 'reset_password',
+          performed_by: user.id,
+          target_user: userId,
+          details: { password_reset: true }
+        })
+        
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
