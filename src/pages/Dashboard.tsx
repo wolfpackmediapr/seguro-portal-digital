@@ -14,26 +14,43 @@ import { cn } from "@/lib/utils";
 const Dashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkSuperAdmin = async () => {
+    const checkUserRole = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const { data: role } = await supabase
+        // Check if user is super_admin
+        const { data: superAdminRole } = await supabase
           .from('user_roles')
           .select('role')
           .eq('user_id', session.user.id)
           .eq('role', 'super_admin')
           .single();
         
-        setIsSuperAdmin(!!role);
+        setIsSuperAdmin(!!superAdminRole);
+        
+        // Get user's role for additional permissions if needed
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .single();
+          
+        setUserRole(roleData?.role || null);
       }
     };
 
-    checkSuperAdmin();
+    checkUserRole();
   }, []);
 
   const handleTabChange = (value: string) => {
+    // If user is not super admin and tries to access restricted tabs, redirect to inicio
+    if ((value === "settings" || value === "logs") && !isSuperAdmin) {
+      setActiveTab("inicio");
+      return;
+    }
+    
     setActiveTab(value);
   };
 
@@ -55,17 +72,23 @@ const Dashboard = () => {
               <Home className="w-4 h-4 mr-3" />
               Inicio
             </a>
-            <a 
-              href="#" 
-              onClick={() => handleTabChange("logs")}
-              className={cn(
-                "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
-                activeTab === "logs" ? "bg-gray-100 text-gray-900" : "text-gray-600"
-              )}
-            >
-              <List className="w-4 h-4 mr-3" />
-              Logs
-            </a>
+            
+            {/* Only show logs tab to super admins */}
+            {isSuperAdmin && (
+              <a 
+                href="#" 
+                onClick={() => handleTabChange("logs")}
+                className={cn(
+                  "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
+                  activeTab === "logs" ? "bg-gray-100 text-gray-900" : "text-gray-600"
+                )}
+              >
+                <List className="w-4 h-4 mr-3" />
+                Logs
+              </a>
+            )}
+            
+            {/* Only show configuration tab to super admins */}
             {isSuperAdmin && (
               <a 
                 href="#" 
@@ -86,7 +109,11 @@ const Dashboard = () => {
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
             <TabsList className="mb-6">
               <TabsTrigger value="inicio">Inicio</TabsTrigger>
-              <TabsTrigger value="logs">Logs</TabsTrigger>
+              {/* Only show logs tab to super admins */}
+              {isSuperAdmin && (
+                <TabsTrigger value="logs">Logs</TabsTrigger>
+              )}
+              {/* Only show settings tab to super admins */}
               {isSuperAdmin && (
                 <TabsTrigger value="settings">Configuración</TabsTrigger>
               )}
@@ -115,16 +142,20 @@ const Dashboard = () => {
               </Tabs>
             </TabsContent>
 
-            <TabsContent value="logs">
-              <AdminLogs />
-            </TabsContent>
+            {/* Only render logs tab content for super admins */}
+            {isSuperAdmin && (
+              <TabsContent value="logs">
+                <AdminLogs />
+              </TabsContent>
+            )}
 
+            {/* Only render settings tab content for super admins */}
             {isSuperAdmin && (
               <TabsContent value="settings">
                 <Tabs defaultValue="users" className="w-full">
                   <TabsList>
                     <TabsTrigger value="users">Users</TabsTrigger>
-                    <TabsTrigger value="logs">Logs</TabsTrigger>
+                    <TabsTrigger value="logs">Auth Logs</TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="users" className="mt-6">
