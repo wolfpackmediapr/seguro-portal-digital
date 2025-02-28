@@ -15,6 +15,8 @@ interface TypeformEmbedProps {
 const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: TypeformEmbedProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 2;
 
   const initializeTypeform = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
@@ -57,7 +59,7 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
                 return;
               }
 
-              // Fix: Specify a valid domain for Typeform widget
+              // Create the Typeform widget
               window.tf.createWidget({
                 container: formContainer,
                 embedId: formId,
@@ -66,7 +68,8 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
                   hideHeaders: true,
                   opacity: 0,
                 },
-                domain: 'form.typeform.com' // Use a fixed valid domain
+                // Use the correct domain for embed
+                domain: 'embed.typeform.com'
               });
 
               resolve();
@@ -89,7 +92,7 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
               onLoadStateChange(false);
             }
           }
-        }, 300); // Increase timeout to ensure script is fully loaded
+        }, 500); // Increase timeout to ensure script is fully loaded
       };
 
       script.onerror = (error) => {
@@ -111,6 +114,9 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
       if (onLoadStateChange) {
         onLoadStateChange(true);
       }
+      
+      // Reset retry count on manual reload
+      setRetryCount(0);
       
       // Reinitialize Typeform
       await initializeTypeform();
@@ -135,28 +141,47 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
     }
   }, [formId, initializeTypeform, toast, onLoadStateChange]);
 
-  // Effect to initialize the form
+  // Effect to handle automatic retries
   useEffect(() => {
-    // Only show error toast for actual errors, not initialization
-    initializeTypeform().catch((error) => {
-      if (error instanceof Error && 
-          !error.message.includes("domain") && // Ignore domain-related errors
-          !error.message.includes("tf object")) { // Ignore initialization timing issues
-        console.error("Error initializing Typeform:", error);
-        toast({
-          description: "Error al cargar el formulario",
-          variant: "destructive",
-        });
+    let retryTimeout: number | undefined;
+    
+    const attemptInitialization = async () => {
+      try {
+        await initializeTypeform();
+        // Reset retry count on successful initialization
+        setRetryCount(0);
+      } catch (error) {
+        console.error(`Typeform initialization attempt ${retryCount + 1} failed:`, error);
+        
+        // If we haven't reached max retries, try again
+        if (retryCount < MAX_RETRIES) {
+          setRetryCount(prevCount => prevCount + 1);
+          retryTimeout = window.setTimeout(() => {
+            attemptInitialization();
+          }, 2000); // Wait 2 seconds before retrying
+        } else {
+          // Max retries reached, show error to user
+          toast({
+            description: "Error al cargar el formulario. Por favor, intente recargarlo.",
+            variant: "destructive",
+          });
+        }
       }
-    });
-
+    };
+    
+    attemptInitialization();
+    
     return () => {
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      
       const script = document.querySelector('script[src*="typeform"]');
       if (script) {
         script.remove();
       }
     };
-  }, [initializeTypeform, toast]);
+  }, [initializeTypeform, toast, retryCount]);
 
   // Effect to respond to refreshTrigger changes
   useEffect(() => {
