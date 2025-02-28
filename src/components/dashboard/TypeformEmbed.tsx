@@ -8,29 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 interface TypeformEmbedProps {
   title: string;
   formId: string;
-  refreshTrigger: number;
-  onLoadStateChange?: (isLoading: boolean) => void;
 }
 
-const TypeformEmbed = ({ 
-  title, 
-  formId, 
-  refreshTrigger,
-  onLoadStateChange 
-}: TypeformEmbedProps) => {
+const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const updateLoadingState = useCallback((state: boolean) => {
-    setIsLoading(state);
-    if (onLoadStateChange) {
-      onLoadStateChange(state);
-    }
-  }, [onLoadStateChange]);
-
   const initializeTypeform = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
-      updateLoadingState(true);
+      setIsLoading(true);
 
       // Remove existing script if any
       const existingScript = document.querySelector('script[src*="typeform"]');
@@ -58,7 +44,7 @@ const TypeformEmbed = ({
               const formContainer = document.querySelector(`[data-tf-live="${formId}"]`);
               if (!formContainer) {
                 reject(new Error("Container element not found"));
-                updateLoadingState(false);
+                setIsLoading(false);
                 return;
               }
 
@@ -75,15 +61,15 @@ const TypeformEmbed = ({
               });
 
               resolve();
-              updateLoadingState(false);
+              setIsLoading(false);
             } catch (error) {
               console.error("Error creating Typeform widget:", error);
               reject(error);
-              updateLoadingState(false);
+              setIsLoading(false);
             }
           } else {
             reject(new Error("Typeform script loaded but tf object not found"));
-            updateLoadingState(false);
+            setIsLoading(false);
           }
         }, 300); // Increase timeout to ensure script is fully loaded
       };
@@ -91,15 +77,39 @@ const TypeformEmbed = ({
       script.onerror = (error) => {
         console.error("Error loading Typeform script:", error);
         reject(error);
-        updateLoadingState(false);
+        setIsLoading(false);
       };
 
       document.body.appendChild(script);
     });
-  }, [formId, updateLoadingState]);
+  }, [formId]);
+
+  const handleReload = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      // Reinitialize Typeform
+      await initializeTypeform();
+      
+      toast({
+        description: "Formulario actualizado",
+        duration: 2000,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error reloading form:", error);
+        toast({
+          description: "Error al actualizar el formulario",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formId, initializeTypeform, toast]);
 
   useEffect(() => {
-    // Initialize the form when the component mounts or when refreshTrigger changes
+    // Only show error toast for actual errors, not initialization
     initializeTypeform().catch((error) => {
       if (error instanceof Error && 
           !error.message.includes("domain") && // Ignore domain-related errors
@@ -118,12 +128,21 @@ const TypeformEmbed = ({
         script.remove();
       }
     };
-  }, [initializeTypeform, toast, refreshTrigger]);
+  }, [initializeTypeform, toast]);
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>{title}</CardTitle>
+        <Button 
+          variant="outline" 
+          size="icon"
+          onClick={handleReload}
+          disabled={isLoading}
+          title="Actualizar formulario"
+        >
+          <RotateCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+        </Button>
       </CardHeader>
       <CardContent>
         <div data-tf-live={formId} className="min-h-[400px]"></div>
