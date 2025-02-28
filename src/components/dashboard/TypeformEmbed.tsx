@@ -48,7 +48,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
                 return;
               }
 
-              // Create the widget with a valid domain - fixed the domain issue
+              // Fix: Specify a valid domain for Typeform widget
               window.tf.createWidget({
                 container: formContainer,
                 embedId: formId,
@@ -57,7 +57,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
                   hideHeaders: true,
                   opacity: 0,
                 },
-                domain: 'embed.typeform.com' // Use a fixed valid domain instead of relying on window.location
+                domain: 'form.typeform.com' // Use a fixed valid domain
               });
 
               resolve();
