@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "@/components/admin/types";
 import { Home, List, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +14,8 @@ const Dashboard = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isFormLoading, setIsFormLoading] = useState(false);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -52,6 +53,10 @@ const Dashboard = () => {
     }
     
     setActiveTab(value);
+  };
+
+  const handleFormLoadStateChange = (isLoading: boolean) => {
+    setIsFormLoading(isLoading);
   };
 
   return (
@@ -130,6 +135,8 @@ const Dashboard = () => {
                   <TypeformEmbed 
                     title="Alerta Radio"
                     formId="01JEWES3GA7PPQN2SPRNHSVHPG"
+                    refreshTrigger={refreshTrigger}
+                    onLoadStateChange={handleFormLoadStateChange}
                   />
                 </TabsContent>
                 
@@ -137,6 +144,8 @@ const Dashboard = () => {
                   <TypeformEmbed 
                     title="Alerta TV"
                     formId="01JEWEP95CN5YH8JCET8GEXRSK"
+                    refreshTrigger={refreshTrigger}
+                    onLoadStateChange={handleFormLoadStateChange}
                   />
                 </TabsContent>
               </Tabs>

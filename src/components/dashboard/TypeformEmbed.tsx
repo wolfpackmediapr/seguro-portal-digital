@@ -8,15 +8,21 @@ import { useToast } from "@/hooks/use-toast";
 interface TypeformEmbedProps {
   title: string;
   formId: string;
+  refreshTrigger?: number;
+  onLoadStateChange?: (isLoading: boolean) => void;
 }
 
-const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
+const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: TypeformEmbedProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const initializeTypeform = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
       setIsLoading(true);
+      // Let parent components know about loading state if callback provided
+      if (onLoadStateChange) {
+        onLoadStateChange(true);
+      }
 
       // Remove existing script if any
       const existingScript = document.querySelector('script[src*="typeform"]');
@@ -45,6 +51,9 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
               if (!formContainer) {
                 reject(new Error("Container element not found"));
                 setIsLoading(false);
+                if (onLoadStateChange) {
+                  onLoadStateChange(false);
+                }
                 return;
               }
 
@@ -62,14 +71,23 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
               resolve();
               setIsLoading(false);
+              if (onLoadStateChange) {
+                onLoadStateChange(false);
+              }
             } catch (error) {
               console.error("Error creating Typeform widget:", error);
               reject(error);
               setIsLoading(false);
+              if (onLoadStateChange) {
+                onLoadStateChange(false);
+              }
             }
           } else {
             reject(new Error("Typeform script loaded but tf object not found"));
             setIsLoading(false);
+            if (onLoadStateChange) {
+              onLoadStateChange(false);
+            }
           }
         }, 300); // Increase timeout to ensure script is fully loaded
       };
@@ -78,15 +96,21 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         console.error("Error loading Typeform script:", error);
         reject(error);
         setIsLoading(false);
+        if (onLoadStateChange) {
+          onLoadStateChange(false);
+        }
       };
 
       document.body.appendChild(script);
     });
-  }, [formId]);
+  }, [formId, onLoadStateChange]);
 
   const handleReload = useCallback(async () => {
     try {
       setIsLoading(true);
+      if (onLoadStateChange) {
+        onLoadStateChange(true);
+      }
       
       // Reinitialize Typeform
       await initializeTypeform();
@@ -105,9 +129,13 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
       }
     } finally {
       setIsLoading(false);
+      if (onLoadStateChange) {
+        onLoadStateChange(false);
+      }
     }
-  }, [formId, initializeTypeform, toast]);
+  }, [formId, initializeTypeform, toast, onLoadStateChange]);
 
+  // Effect to initialize the form
   useEffect(() => {
     // Only show error toast for actual errors, not initialization
     initializeTypeform().catch((error) => {
@@ -129,6 +157,13 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
       }
     };
   }, [initializeTypeform, toast]);
+
+  // Effect to respond to refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      handleReload();
+    }
+  }, [refreshTrigger, handleReload]);
 
   return (
     <Card>
