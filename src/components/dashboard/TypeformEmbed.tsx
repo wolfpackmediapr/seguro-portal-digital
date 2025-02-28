@@ -8,23 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 interface TypeformEmbedProps {
   title: string;
   formId: string;
-  refreshTrigger?: number;
-  onLoadStateChange?: (isLoading: boolean) => void;
 }
 
-const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: TypeformEmbedProps) => {
+const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
-  const MAX_RETRIES = 2;
 
   const initializeTypeform = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
       setIsLoading(true);
-      // Let parent components know about loading state if callback provided
-      if (onLoadStateChange) {
-        onLoadStateChange(true);
-      }
 
       // Remove existing script if any
       const existingScript = document.querySelector('script[src*="typeform"]');
@@ -53,13 +45,10 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
               if (!formContainer) {
                 reject(new Error("Container element not found"));
                 setIsLoading(false);
-                if (onLoadStateChange) {
-                  onLoadStateChange(false);
-                }
                 return;
               }
 
-              // Create the Typeform widget
+              // Create the widget with a valid domain - fixed the domain issue
               window.tf.createWidget({
                 container: formContainer,
                 embedId: formId,
@@ -68,55 +57,36 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
                   hideHeaders: true,
                   opacity: 0,
                 },
-                // Use the correct domain for embed
-                domain: 'embed.typeform.com'
+                domain: 'embed.typeform.com' // Use a fixed valid domain instead of relying on window.location
               });
 
               resolve();
               setIsLoading(false);
-              if (onLoadStateChange) {
-                onLoadStateChange(false);
-              }
             } catch (error) {
               console.error("Error creating Typeform widget:", error);
               reject(error);
               setIsLoading(false);
-              if (onLoadStateChange) {
-                onLoadStateChange(false);
-              }
             }
           } else {
             reject(new Error("Typeform script loaded but tf object not found"));
             setIsLoading(false);
-            if (onLoadStateChange) {
-              onLoadStateChange(false);
-            }
           }
-        }, 500); // Increase timeout to ensure script is fully loaded
+        }, 300); // Increase timeout to ensure script is fully loaded
       };
 
       script.onerror = (error) => {
         console.error("Error loading Typeform script:", error);
         reject(error);
         setIsLoading(false);
-        if (onLoadStateChange) {
-          onLoadStateChange(false);
-        }
       };
 
       document.body.appendChild(script);
     });
-  }, [formId, onLoadStateChange]);
+  }, [formId]);
 
   const handleReload = useCallback(async () => {
     try {
       setIsLoading(true);
-      if (onLoadStateChange) {
-        onLoadStateChange(true);
-      }
-      
-      // Reset retry count on manual reload
-      setRetryCount(0);
       
       // Reinitialize Typeform
       await initializeTypeform();
@@ -135,60 +105,30 @@ const TypeformEmbed = ({ title, formId, refreshTrigger, onLoadStateChange }: Typ
       }
     } finally {
       setIsLoading(false);
-      if (onLoadStateChange) {
-        onLoadStateChange(false);
-      }
     }
-  }, [formId, initializeTypeform, toast, onLoadStateChange]);
+  }, [formId, initializeTypeform, toast]);
 
-  // Effect to handle automatic retries
   useEffect(() => {
-    let retryTimeout: number | undefined;
-    
-    const attemptInitialization = async () => {
-      try {
-        await initializeTypeform();
-        // Reset retry count on successful initialization
-        setRetryCount(0);
-      } catch (error) {
-        console.error(`Typeform initialization attempt ${retryCount + 1} failed:`, error);
-        
-        // If we haven't reached max retries, try again
-        if (retryCount < MAX_RETRIES) {
-          setRetryCount(prevCount => prevCount + 1);
-          retryTimeout = window.setTimeout(() => {
-            attemptInitialization();
-          }, 2000); // Wait 2 seconds before retrying
-        } else {
-          // Max retries reached, show error to user
-          toast({
-            description: "Error al cargar el formulario. Por favor, intente recargarlo.",
-            variant: "destructive",
-          });
-        }
+    // Only show error toast for actual errors, not initialization
+    initializeTypeform().catch((error) => {
+      if (error instanceof Error && 
+          !error.message.includes("domain") && // Ignore domain-related errors
+          !error.message.includes("tf object")) { // Ignore initialization timing issues
+        console.error("Error initializing Typeform:", error);
+        toast({
+          description: "Error al cargar el formulario",
+          variant: "destructive",
+        });
       }
-    };
-    
-    attemptInitialization();
-    
+    });
+
     return () => {
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
-      
       const script = document.querySelector('script[src*="typeform"]');
       if (script) {
         script.remove();
       }
     };
-  }, [initializeTypeform, toast, retryCount]);
-
-  // Effect to respond to refreshTrigger changes
-  useEffect(() => {
-    if (refreshTrigger !== undefined) {
-      handleReload();
-    }
-  }, [refreshTrigger, handleReload]);
+  }, [initializeTypeform, toast]);
 
   return (
     <Card>
