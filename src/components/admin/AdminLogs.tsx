@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFetchLogs } from './hooks/useFetchLogs';
 import { ActivityLogsTable } from './logs/ActivityLogsTable';
@@ -113,59 +113,78 @@ export const AdminLogs = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>System Logs</CardTitle>
-        <CardDescription>
-          View and monitor user activity and sessions across the application.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center justify-between mb-4">
-            <TabsList>
-              <TabsTrigger value="activity">Activity Logs</TabsTrigger>
-              <TabsTrigger value="sessions">User Sessions</TabsTrigger>
-            </TabsList>
-            
-            {activeTab === 'activity' && (
-              <ExportButton 
-                data={activityLogs} 
-                filename="activity-logs" 
-                isDisabled={isLoadingActivity || activityLogs.length === 0}
-              />
-            )}
-            
-            {activeTab === 'sessions' && (
-              <ExportButton 
-                data={sessions} 
-                filename="user-sessions" 
-                isDisabled={isLoadingSessions || sessions.length === 0}
-              />
-            )}
+    <Card className="border shadow-sm rounded-lg">
+      <CardHeader className="bg-white rounded-t-lg pb-0">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>System Logs</CardTitle>
+            <CardDescription className="text-gray-500 mt-1">
+              View and monitor user activity and sessions across the application.
+            </CardDescription>
           </div>
-          
-          <LogFilters
-            userId={userId}
-            setUserId={setUserId}
-            actionType={actionType}
-            setActionType={setActionType}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
-            onApplyFilters={handleApplyFilters}
-            onResetFilters={handleResetFilters}
-          />
-          
-          <TabsContent value="activity" className="mt-0">
-            <ActivityLogsTable logs={activityLogs} isLoading={isLoadingActivity} />
-          </TabsContent>
-          
-          <TabsContent value="sessions" className="mt-0">
-            <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
-          </TabsContent>
-        </Tabs>
+          {activeTab === 'activity' && (
+            <ExportButton 
+              data={activityLogs} 
+              filename="activity-logs" 
+              isDisabled={isLoadingActivity || activityLogs.length === 0}
+            />
+          )}
+          {activeTab === 'sessions' && (
+            <ExportButton 
+              data={sessions} 
+              filename="user-sessions" 
+              isDisabled={isLoadingSessions || sessions.length === 0}
+            />
+          )}
+        </div>
+        
+        <div className="flex border-b mt-6">
+          <Button
+            variant="ghost"
+            className={`rounded-none border-b-2 px-4 py-2 ${
+              activeTab === 'activity'
+                ? 'border-primary text-primary font-medium'
+                : 'border-transparent text-gray-500'
+            }`}
+            onClick={() => setActiveTab('activity')}
+          >
+            Activity Logs
+          </Button>
+          <Button
+            variant="ghost"
+            className={`rounded-none border-b-2 px-4 py-2 ${
+              activeTab === 'sessions'
+                ? 'border-primary text-primary font-medium'
+                : 'border-transparent text-gray-500'
+            }`}
+            onClick={() => setActiveTab('sessions')}
+          >
+            User Sessions
+          </Button>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-4">
+        <LogFilters
+          userId={userId}
+          setUserId={setUserId}
+          actionType={actionType}
+          setActionType={setActionType}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          onApplyFilters={handleApplyFilters}
+          onResetFilters={handleResetFilters}
+        />
+        
+        {activeTab === 'activity' && (
+          <ActivityLogsTable logs={activityLogs} isLoading={isLoadingActivity} />
+        )}
+        
+        {activeTab === 'sessions' && (
+          <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
+        )}
       </CardContent>
     </Card>
   );
