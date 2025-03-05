@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserActivityLog, UserSession, LogActionType } from '../types';
 
@@ -13,8 +13,8 @@ interface LogsFilters {
 export const useFetchLogs = (filters: LogsFilters = {}) => {
   const [activityLogs, setActivityLogs] = useState<UserActivityLog[]>([]);
   const [sessions, setSessions] = useState<UserSession[]>([]);
-  const [isLoadingActivity, setIsLoadingActivity] = useState<boolean>(false);
-  const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
+  const [isLoadingActivity, setIsLoadingActivity] = useState<boolean>(true);
+  const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
   const refetchActivityLogs = useCallback(async () => {
@@ -49,10 +49,10 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
       if (fetchError) throw fetchError;
 
       // Convert JSON to proper type
-      const typedLogs: UserActivityLog[] = data.map(log => ({
+      const typedLogs: UserActivityLog[] = data?.map(log => ({
         ...log,
         details: log.details as Record<string, any> | null
-      }));
+      })) || [];
 
       setActivityLogs(typedLogs);
     } catch (err) {
@@ -91,12 +91,12 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
       if (fetchError) throw fetchError;
 
       // Convert JSON to proper type
-      const typedSessions: UserSession[] = data.map(session => ({
+      const typedSessions: UserSession[] = data?.map(session => ({
         ...session,
         metadata: session.metadata as Record<string, any> | null,
         device_info: session.device_info as Record<string, any> | null,
         location: session.location as Record<string, any> | null
-      }));
+      })) || [];
 
       setSessions(typedSessions);
     } catch (err) {
@@ -107,11 +107,11 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
     }
   }, [filters]);
 
-  // Initial fetch
-  useState(() => {
+  // Initial fetch - fix the useState to useEffect
+  useEffect(() => {
     refetchActivityLogs();
     refetchSessions();
-  });
+  }, [refetchActivityLogs, refetchSessions]);
 
   return {
     activityLogs,

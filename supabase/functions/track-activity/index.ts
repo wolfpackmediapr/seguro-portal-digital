@@ -18,7 +18,7 @@ serve(async (req) => {
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
-      throw new Error('Missing environment variables');
+      throw new Error('Missing environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not found');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -38,10 +38,17 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { action, sessionId, details } = await req.json()
+    let body;
+    try {
+      body = await req.json()
+    } catch (e) {
+      throw new Error('Invalid JSON in request body')
+    }
+    
+    const { action, sessionId, details } = body;
 
     if (!action) {
-      throw new Error('Missing required fields')
+      throw new Error('Missing required field: action')
     }
 
     // Try to get the client IP address
@@ -50,7 +57,7 @@ serve(async (req) => {
     // Enrich the details with IP info if not already present
     const enrichedDetails = {
       ...details,
-      ip_address: details.ip_address || clientIp,
+      ip_address: details?.ip_address || clientIp,
       timestamp: new Date().toISOString()
     };
 
@@ -70,7 +77,7 @@ serve(async (req) => {
 
     if (error) {
       console.error('Error inserting log:', error);
-      throw error;
+      throw new Error('Error inserting activity log: ' + error.message);
     }
 
     // Update the session's last_ping if a sessionId is provided
@@ -85,6 +92,7 @@ serve(async (req) => {
       
       if (sessionError) {
         console.error('Error updating session:', sessionError);
+        // We don't throw here to avoid failing the whole request
       }
     }
 
@@ -99,7 +107,10 @@ serve(async (req) => {
     console.error('Error tracking activity:', error)
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'Unknown error in track-activity function',
+        success: false
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400 

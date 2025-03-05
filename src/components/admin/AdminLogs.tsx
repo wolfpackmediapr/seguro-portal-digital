@@ -55,6 +55,7 @@ export const AdminLogs = () => {
           table: 'user_activity_logs'
         },
         () => {
+          console.log('Activity logs changed, refetching...');
           refetchActivityLogs();
         }
       )
@@ -66,6 +67,7 @@ export const AdminLogs = () => {
           table: 'user_sessions'
         },
         () => {
+          console.log('Sessions changed, refetching...');
           refetchSessions();
         }
       )
@@ -79,6 +81,7 @@ export const AdminLogs = () => {
   // Handle errors
   useEffect(() => {
     if (error) {
+      console.error('Error in AdminLogs:', error);
       toast({
         title: 'Error loading logs',
         description: error.message,
@@ -89,6 +92,7 @@ export const AdminLogs = () => {
 
   // Apply filters
   const handleApplyFilters = () => {
+    console.log('Applying filters:', { userId, actionType, startDate, endDate });
     refetchActivityLogs();
     refetchSessions();
   };
@@ -102,6 +106,7 @@ export const AdminLogs = () => {
     
     // Wait for state to update before refetching
     setTimeout(() => {
+      console.log('Filters reset, refetching...');
       refetchActivityLogs();
       refetchSessions();
     }, 0);
