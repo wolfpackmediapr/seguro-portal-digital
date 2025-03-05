@@ -33,25 +33,28 @@ export const debounce = <T extends (...args: any[]) => any>(
   };
 };
 
-// Fetch user email by user ID
+// Cache for storing user emails to reduce API calls
+export const userEmailCache: Record<string, string> = {};
+
+// Fetch user email by user ID using the edge function
 export const fetchUserEmail = async (userId: string): Promise<string | null> => {
   try {
-    const { data, error } = await supabase.auth.admin.getUserById(userId);
+    // Call the edge function to get the user email
+    const { data, error } = await supabase.functions.invoke('get-user-email', {
+      body: { userId }
+    });
     
-    if (error || !data.user) {
-      console.error("Error fetching user data:", error);
+    if (error || !data?.email) {
+      console.error("Error fetching user email:", error);
       return null;
     }
     
-    return data.user.email || null;
+    return data.email;
   } catch (error) {
     console.error("Exception fetching user email:", error);
     return null;
   }
 };
-
-// Cache for storing user emails to reduce API calls
-export const userEmailCache: Record<string, string> = {};
 
 // Get user email with caching
 export const getUserEmail = async (userId: string): Promise<string> => {
@@ -63,22 +66,16 @@ export const getUserEmail = async (userId: string): Promise<string> => {
   }
   
   try {
-    // Directly query the auth.users table using a function
-    // Note: This requires proper RLS policies or admin access
-    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+    // Fetch email using the edge function
+    const email = await fetchUserEmail(userId);
     
-    if (userError || !userData) {
-      console.error("Error fetching user email:", userError);
-      return userId.substring(0, 8) + '...'; // Return truncated ID if email not found
+    if (email) {
+      // Cache the email if found
+      userEmailCache[userId] = email;
+      return email;
     }
     
-    // Cache the email if found
-    if (userData.user && userData.user.email) {
-      userEmailCache[userId] = userData.user.email;
-      return userData.user.email;
-    }
-    
-    return userId.substring(0, 8) + '...';
+    return userId.substring(0, 8) + '...'; // Return truncated ID if email not found
   } catch (error) {
     console.error("Exception getting user email:", error);
     return userId.substring(0, 8) + '...';
