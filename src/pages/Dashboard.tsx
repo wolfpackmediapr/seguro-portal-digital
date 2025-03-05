@@ -1,81 +1,12 @@
 
-import { useEffect, useState } from "react";
-import DashboardNav from "@/components/dashboard/DashboardNav";
-import DashboardFooter from "@/components/dashboard/DashboardFooter";
-import TypeformEmbed from "@/components/dashboard/TypeformEmbed";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserManagement } from "@/components/admin/UserManagement";
-import { AdminLogs } from "@/components/admin/AdminLogs";
-import { supabase } from "@/integrations/supabase/client";
-import { Home, List, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import DashboardTabs from "@/components/dashboard/tabs/DashboardTabs";
+import { useAuthRole } from "@/hooks/useAuthRole";
 
 const Dashboard = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  useEffect(() => {
-    const checkUserRole = async () => {
-      setIsLoading(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          // If no session, redirect to login
-          navigate("/");
-          return;
-        }
-        
-        // Check if user is super_admin or admin
-        const { data: adminRole, error: roleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .in('role', ['super_admin', 'admin'])
-          .single();
-        
-        if (roleError && !roleError.message.includes('No rows found')) {
-          console.error("Error checking admin role:", roleError);
-          toast({
-            title: "Error",
-            description: "Error checking user permissions",
-            variant: "destructive",
-          });
-        }
-        
-        setIsAdmin(!!adminRole);
-        
-        // Get user's role for additional permissions if needed
-        const { data: roleData, error: userRoleError } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle();
-          
-        if (userRoleError) {
-          console.error("Error checking user role:", userRoleError);
-        }
-        
-        setUserRole(roleData?.role || null);
-      } catch (error) {
-        console.error("Error checking user role:", error);
-        toast({
-          title: "Error",
-          description: "An error occurred while loading your dashboard",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkUserRole();
-  }, [navigate, toast]);
+  const { isAdmin, userRole, isLoading } = useAuthRole();
 
   const handleTabChange = (value: string) => {
     // If user is not admin and tries to access restricted tabs, redirect to inicio
@@ -88,140 +19,19 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <DashboardNav />
-
-      <div className="flex flex-1">
-        <aside className="w-64 bg-white border-r">
-          <nav className="py-4">
-            <a 
-              href="#" 
-              onClick={(e) => {
-                e.preventDefault();
-                handleTabChange("inicio");
-              }}
-              className={cn(
-                "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
-                activeTab === "inicio" ? "bg-gray-100 text-gray-900" : "text-gray-600"
-              )}
-            >
-              <Home className="w-4 h-4 mr-3" />
-              Inicio
-            </a>
-            
-            {/* Show logs tab to admins and super admins */}
-            {isAdmin && (
-              <a 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleTabChange("logs");
-                }}
-                className={cn(
-                  "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
-                  activeTab === "logs" ? "bg-gray-100 text-gray-900" : "text-gray-600"
-                )}
-              >
-                <List className="w-4 h-4 mr-3" />
-                Logs
-              </a>
-            )}
-            
-            {/* Show settings tab to admins and super admins */}
-            {isAdmin && (
-              <a 
-                href="#" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleTabChange("settings");
-                }}
-                className={cn(
-                  "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
-                  activeTab === "settings" ? "bg-gray-100 text-gray-900" : "text-gray-600"
-                )}
-              >
-                <Settings className="w-4 h-4 mr-3" />
-                Configuración
-              </a>
-            )}
-          </nav>
-        </aside>
-
-        <main className="flex-1 p-6">
-          {isLoading ? (
-            <div className="flex justify-center items-center h-full">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
-            </div>
-          ) : (
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="mb-6">
-                <TabsTrigger value="inicio">Inicio</TabsTrigger>
-                {/* Show logs tab to admins and super admins */}
-                {isAdmin && (
-                  <TabsTrigger value="logs">Logs</TabsTrigger>
-                )}
-                {/* Show settings tab to admins and super admins */}
-                {isAdmin && (
-                  <TabsTrigger value="settings">Configuración</TabsTrigger>
-                )}
-              </TabsList>
-              
-              <TabsContent value="inicio">
-                <Tabs defaultValue="radio" className="w-full">
-                  <TabsList>
-                    <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
-                    <TabsTrigger value="tv">Alerta TV</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="radio" className="mt-6">
-                    <TypeformEmbed 
-                      title="Alerta Radio"
-                      formId="01JEWES3GA7PPQN2SPRNHSVHPG"
-                    />
-                  </TabsContent>
-                  
-                  <TabsContent value="tv" className="mt-6">
-                    <TypeformEmbed 
-                      title="Alerta TV"
-                      formId="01JEWEP95CN5YH8JCET8GEXRSK"
-                    />
-                  </TabsContent>
-                </Tabs>
-              </TabsContent>
-
-              {/* Render logs tab content for admins and super admins */}
-              {isAdmin && (
-                <TabsContent value="logs">
-                  <AdminLogs />
-                </TabsContent>
-              )}
-
-              {/* Render settings tab content for admins and super admins */}
-              {isAdmin && (
-                <TabsContent value="settings">
-                  <Tabs defaultValue="users" className="w-full">
-                    <TabsList>
-                      <TabsTrigger value="users">Users</TabsTrigger>
-                      <TabsTrigger value="logs">Auth Logs</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="users" className="mt-6">
-                      <UserManagement />
-                    </TabsContent>
-                    
-                    <TabsContent value="logs" className="mt-6">
-                      <AdminLogs />
-                    </TabsContent>
-                  </Tabs>
-                </TabsContent>
-              )}
-            </Tabs>
-          )}
-        </main>
-      </div>
-
-      <DashboardFooter />
-    </div>
+    <DashboardLayout 
+      isAdmin={isAdmin} 
+      userRole={userRole} 
+      activeTab={activeTab} 
+      handleTabChange={handleTabChange}
+    >
+      <DashboardTabs 
+        activeTab={activeTab}
+        handleTabChange={handleTabChange}
+        isAdmin={isAdmin}
+        isLoading={isLoading}
+      />
+    </DashboardLayout>
   );
 };
 
