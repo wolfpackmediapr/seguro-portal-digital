@@ -22,13 +22,16 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
     setError(null);
 
     try {
+      // Add a small delay to help with connection issues
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       let query = supabase
         .from('user_activity_logs')
         .select('*')
         .order('created_at', { ascending: false });
 
-      // Apply filters
-      if (filters.userId) {
+      // Apply filters - only if they have values
+      if (filters.userId && filters.userId.trim() !== '') {
         query = query.eq('user_id', filters.userId);
       }
 
@@ -36,17 +39,20 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
         query = query.eq('action_type', filters.actionType);
       }
 
-      if (filters.startDate) {
+      if (filters.startDate && filters.startDate.trim() !== '') {
         query = query.gte('created_at', filters.startDate);
       }
 
-      if (filters.endDate) {
+      if (filters.endDate && filters.endDate.trim() !== '') {
         query = query.lte('created_at', filters.endDate);
       }
 
       const { data, error: fetchError } = await query;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Supabase error fetching activity logs:', fetchError);
+        throw fetchError;
+      }
 
       // Convert JSON to proper type
       const typedLogs: UserActivityLog[] = data?.map(log => ({
@@ -57,6 +63,8 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
       setActivityLogs(typedLogs);
     } catch (err) {
       console.error('Error fetching activity logs:', err);
+      // Return empty data instead of failing
+      setActivityLogs([]);
       setError(err instanceof Error ? err : new Error('Failed to fetch activity logs'));
     } finally {
       setIsLoadingActivity(false);
@@ -68,27 +76,33 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
     setError(null);
 
     try {
+      // Add a small delay to help with connection issues
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       let query = supabase
         .from('user_sessions')
         .select('*')
         .order('login_time', { ascending: false });
 
-      // Apply filters
-      if (filters.userId) {
+      // Apply filters - only if they have values
+      if (filters.userId && filters.userId.trim() !== '') {
         query = query.eq('user_id', filters.userId);
       }
 
-      if (filters.startDate) {
+      if (filters.startDate && filters.startDate.trim() !== '') {
         query = query.gte('login_time', filters.startDate);
       }
 
-      if (filters.endDate) {
+      if (filters.endDate && filters.endDate.trim() !== '') {
         query = query.lte('login_time', filters.endDate);
       }
 
       const { data, error: fetchError } = await query;
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('Supabase error fetching sessions:', fetchError);
+        throw fetchError;
+      }
 
       // Convert JSON to proper type
       const typedSessions: UserSession[] = data?.map(session => ({
@@ -101,6 +115,8 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
       setSessions(typedSessions);
     } catch (err) {
       console.error('Error fetching sessions:', err);
+      // Return empty data instead of failing
+      setSessions([]);
       setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
     } finally {
       setIsLoadingSessions(false);
@@ -109,8 +125,26 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
 
   // Initial fetch
   useEffect(() => {
-    refetchActivityLogs();
-    refetchSessions();
+    const fetchData = async () => {
+      try {
+        // Check if we have a session first
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          console.log("No active session found, skipping data fetch");
+          setIsLoadingActivity(false);
+          setIsLoadingSessions(false);
+          return;
+        }
+        
+        await Promise.all([refetchActivityLogs(), refetchSessions()]);
+      } catch (error) {
+        console.error("Error in initial fetch:", error);
+        setIsLoadingActivity(false);
+        setIsLoadingSessions(false);
+      }
+    };
+    
+    fetchData();
   }, [refetchActivityLogs, refetchSessions]);
 
   return {
