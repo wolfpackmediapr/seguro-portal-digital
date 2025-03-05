@@ -13,24 +13,20 @@ interface TypeformEmbedProps {
 const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
 
   const initializeTypeform = useCallback(() => {
     return new Promise<void>((resolve, reject) => {
       setIsLoading(true);
-      console.log(`Initializing Typeform with ID: ${formId} (attempt: ${retryCount + 1})`);
 
       // Remove existing script if any
       const existingScript = document.querySelector('script[src*="typeform"]');
       if (existingScript) {
-        console.log("Removing existing Typeform script");
         existingScript.remove();
       }
 
       // Clear the form container
       const container = document.querySelector(`[data-tf-live="${formId}"]`);
       if (container) {
-        console.log("Clearing form container");
         container.innerHTML = '';
       }
 
@@ -40,7 +36,6 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
       script.async = true;
       
       script.onload = () => {
-        console.log("Typeform script loaded successfully");
         // Add a small delay to ensure the script is fully loaded
         setTimeout(() => {
           if (window.tf) {
@@ -48,14 +43,11 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
               // Check if the container exists
               const formContainer = document.querySelector(`[data-tf-live="${formId}"]`);
               if (!formContainer) {
-                const error = new Error("Container element not found");
-                console.error(error);
-                reject(error);
+                reject(new Error("Container element not found"));
                 setIsLoading(false);
                 return;
               }
 
-              console.log("Creating Typeform widget with formId:", formId);
               // Create the widget with a valid domain - fixed the domain issue
               window.tf.createWidget({
                 container: formContainer,
@@ -65,31 +57,21 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
                   hideHeaders: true,
                   opacity: 0,
                 },
-                domain: 'embed.typeform.com', // Use a fixed valid domain
-                onReady: () => {
-                  console.log("Typeform widget ready");
-                  resolve();
-                  setIsLoading(false);
-                },
-                onError: (error: any) => {
-                  console.error("Typeform widget error:", error);
-                  reject(error);
-                  setIsLoading(false);
-                }
+                domain: 'embed.typeform.com' // Use a fixed valid domain instead of relying on window.location
               });
 
+              resolve();
+              setIsLoading(false);
             } catch (error) {
               console.error("Error creating Typeform widget:", error);
               reject(error);
               setIsLoading(false);
             }
           } else {
-            const error = new Error("Typeform script loaded but tf object not found");
-            console.error(error);
-            reject(error);
+            reject(new Error("Typeform script loaded but tf object not found"));
             setIsLoading(false);
           }
-        }, 500); // Increased timeout to ensure script is fully loaded
+        }, 300); // Increase timeout to ensure script is fully loaded
       };
 
       script.onerror = (error) => {
@@ -100,56 +82,53 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
       document.body.appendChild(script);
     });
-  }, [formId, retryCount]);
+  }, [formId]);
 
   const handleReload = useCallback(async () => {
     try {
       setIsLoading(true);
-      setRetryCount(prev => prev + 1);
       
       // Reinitialize Typeform
       await initializeTypeform();
       
       toast({
-        description: "Formulario actualizado correctamente",
+        description: "Formulario actualizado",
         duration: 2000,
       });
     } catch (error) {
-      console.error("Error reloading form:", error);
-      toast({
-        title: "Error",
-        description: "Error al actualizar el formulario. Por favor, inténtelo de nuevo.",
-        variant: "destructive",
-        duration: 4000,
-      });
+      if (error instanceof Error) {
+        console.error("Error reloading form:", error);
+        toast({
+          description: "Error al actualizar el formulario",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   }, [formId, initializeTypeform, toast]);
 
   useEffect(() => {
-    console.log(`Setting up Typeform with ID: ${formId}`);
-    
-    // Initialize with a small delay to ensure DOM is ready
-    const timer = setTimeout(() => {
-      initializeTypeform().catch((error) => {
+    // Only show error toast for actual errors, not initialization
+    initializeTypeform().catch((error) => {
+      if (error instanceof Error && 
+          !error.message.includes("domain") && // Ignore domain-related errors
+          !error.message.includes("tf object")) { // Ignore initialization timing issues
         console.error("Error initializing Typeform:", error);
         toast({
-          title: "Error",
-          description: "Error al cargar el formulario. Use el botón de actualizar.",
+          description: "Error al cargar el formulario",
           variant: "destructive",
         });
-      });
-    }, 300);
+      }
+    });
 
     return () => {
-      clearTimeout(timer);
       const script = document.querySelector('script[src*="typeform"]');
       if (script) {
         script.remove();
       }
     };
-  }, [initializeTypeform, toast, formId]);
+  }, [initializeTypeform, toast]);
 
   return (
     <Card>
@@ -166,13 +145,7 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
         </Button>
       </CardHeader>
       <CardContent>
-        <div data-tf-live={formId} className="min-h-[400px] relative">
-          {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-              <div className="text-sm text-muted-foreground">Cargando formulario...</div>
-            </div>
-          )}
-        </div>
+        <div data-tf-live={formId} className="min-h-[400px]"></div>
       </CardContent>
     </Card>
   );

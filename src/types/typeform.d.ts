@@ -9,9 +9,7 @@ interface TypeformWidgetConfig {
   container: Element | null;
   embedId: string;
   options?: TypeformWidgetOptions;
-  domain?: string;
-  onReady?: () => void;
-  onError?: (error: any) => void;
+  domain?: string; // Add domain property to fix the type error
 }
 
 interface Window {
