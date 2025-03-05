@@ -63,32 +63,19 @@ export const getUserEmail = async (userId: string): Promise<string> => {
   }
   
   try {
-    // Get user data from the auth.users table through an RPC function
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('id', userId)
-      .single();
+    // Directly query the auth.users table using a function
+    // Note: This requires proper RLS policies or admin access
+    const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
     
-    if (error) {
-      // If we can't get from profiles, try to get from user_roles with email
-      const { data: userData, error: userError } = await supabase
-        .rpc('get_user_email', { user_id: userId });
-      
-      if (userError || !userData) {
-        console.error("Error fetching user email:", userError);
-        return userId.substring(0, 8) + '...'; // Return truncated ID if email not found
-      }
-      
-      // Cache the email
-      userEmailCache[userId] = userData;
-      return userData;
+    if (userError || !userData) {
+      console.error("Error fetching user email:", userError);
+      return userId.substring(0, 8) + '...'; // Return truncated ID if email not found
     }
     
-    // Cache the email from profiles
-    if (data?.email) {
-      userEmailCache[userId] = data.email;
-      return data.email;
+    // Cache the email if found
+    if (userData.user && userData.user.email) {
+      userEmailCache[userId] = userData.user.email;
+      return userData.user.email;
     }
     
     return userId.substring(0, 8) + '...';
