@@ -14,10 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing environment variables');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Get authorization header
     const authHeader = req.headers.get('Authorization')
@@ -30,7 +34,7 @@ serve(async (req) => {
     // Verify the user
     const { data: { user }, error: userError } = await supabase.auth.getUser(token)
     if (userError || !user) {
-      throw new Error('Unauthorized')
+      throw new Error('Unauthorized: ' + (userError?.message || 'Invalid user'))
     }
 
     // Parse request body
@@ -50,6 +54,8 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     };
 
+    console.log(`Logging activity: ${action} for user ${user.id}`);
+
     // Log the activity
     const { data, error } = await supabase
       .from('user_activity_logs')
@@ -62,20 +68,25 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Error inserting log:', error);
+      throw error;
+    }
 
     // Update the session's last_ping if a sessionId is provided
     if (sessionId) {
-      await supabase
+      const { error: sessionError } = await supabase
         .from('user_sessions')
         .update({ 
           last_ping: new Date().toISOString(),
           ip_address: clientIp
         })
-        .eq('id', sessionId)
+        .eq('id', sessionId);
+      
+      if (sessionError) {
+        console.error('Error updating session:', sessionError);
+      }
     }
-
-    console.log(`Activity logged: ${action} for user ${user.id}`);
 
     return new Response(
       JSON.stringify({ success: true, data }),

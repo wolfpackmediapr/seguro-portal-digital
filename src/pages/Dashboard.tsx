@@ -7,50 +7,75 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "@/components/admin/types";
 import { Home, List, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkUserRole = async () => {
       setIsLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          // Check if user is super_admin or admin
-          const { data: adminRole } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .in('role', ['super_admin', 'admin'])
-            .single();
-          
-          setIsAdmin(!!adminRole);
-          
-          // Get user's role for additional permissions if needed
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-            
-          setUserRole(roleData?.role || null);
+        if (!session) {
+          // If no session, redirect to login
+          navigate("/");
+          return;
         }
+        
+        // Check if user is super_admin or admin
+        const { data: adminRole, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .in('role', ['super_admin', 'admin'])
+          .single();
+        
+        if (roleError && !roleError.message.includes('No rows found')) {
+          console.error("Error checking admin role:", roleError);
+          toast({
+            title: "Error",
+            description: "Error checking user permissions",
+            variant: "destructive",
+          });
+        }
+        
+        setIsAdmin(!!adminRole);
+        
+        // Get user's role for additional permissions if needed
+        const { data: roleData, error: userRoleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+          
+        if (userRoleError) {
+          console.error("Error checking user role:", userRoleError);
+        }
+        
+        setUserRole(roleData?.role || null);
       } catch (error) {
         console.error("Error checking user role:", error);
+        toast({
+          title: "Error",
+          description: "An error occurred while loading your dashboard",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     };
 
     checkUserRole();
-  }, []);
+  }, [navigate, toast]);
 
   const handleTabChange = (value: string) => {
     // If user is not admin and tries to access restricted tabs, redirect to inicio
@@ -71,7 +96,10 @@ const Dashboard = () => {
           <nav className="py-4">
             <a 
               href="#" 
-              onClick={() => handleTabChange("inicio")}
+              onClick={(e) => {
+                e.preventDefault();
+                handleTabChange("inicio");
+              }}
               className={cn(
                 "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
                 activeTab === "inicio" ? "bg-gray-100 text-gray-900" : "text-gray-600"
@@ -85,7 +113,10 @@ const Dashboard = () => {
             {isAdmin && (
               <a 
                 href="#" 
-                onClick={() => handleTabChange("logs")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleTabChange("logs");
+                }}
                 className={cn(
                   "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
                   activeTab === "logs" ? "bg-gray-100 text-gray-900" : "text-gray-600"
@@ -100,7 +131,10 @@ const Dashboard = () => {
             {isAdmin && (
               <a 
                 href="#" 
-                onClick={() => handleTabChange("settings")}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleTabChange("settings");
+                }}
                 className={cn(
                   "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
                   activeTab === "settings" ? "bg-gray-100 text-gray-900" : "text-gray-600"
