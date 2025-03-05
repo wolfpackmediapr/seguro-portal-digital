@@ -16,6 +16,7 @@ import { LogFilters } from './logs/LogFilters';
 import { ExportButton } from './logs/ExportButton';
 import { LogActionType } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 export const AdminLogs = () => {
   const { toast } = useToast();
@@ -45,37 +46,55 @@ export const AdminLogs = () => {
 
   // Setup realtime subscription for live updates
   useEffect(() => {
-    const channel = supabase
-      .channel('admin-logs-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_activity_logs'
-        },
-        () => {
-          console.log('Activity logs changed, refetching...');
-          refetchActivityLogs();
+    const setupRealtimeSubscription = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          console.log("No active session for realtime updates");
+          return;
         }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_sessions'
-        },
-        () => {
-          console.log('Sessions changed, refetching...');
-          refetchSessions();
-        }
-      )
-      .subscribe();
+        
+        console.log("Setting up realtime channel for logs updates");
+        const channel = supabase
+          .channel('admin-logs-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_activity_logs'
+            },
+            () => {
+              console.log('Activity logs changed, refetching...');
+              refetchActivityLogs();
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'user_sessions'
+            },
+            () => {
+              console.log('Sessions changed, refetching...');
+              refetchSessions();
+            }
+          )
+          .subscribe(status => {
+            console.log('Realtime subscription status:', status);
+          });
 
-    return () => {
-      supabase.removeChannel(channel);
+        return () => {
+          console.log('Removing realtime channel');
+          supabase.removeChannel(channel);
+        };
+      } catch (error) {
+        console.error('Error setting up realtime subscription:', error);
+      }
     };
+    
+    setupRealtimeSubscription();
   }, [refetchActivityLogs, refetchSessions]);
 
   // Handle errors
@@ -111,6 +130,25 @@ export const AdminLogs = () => {
       refetchSessions();
     }, 0);
   };
+
+  if (isLoadingActivity && isLoadingSessions) {
+    return (
+      <Card className="border shadow-sm rounded-lg">
+        <CardHeader className="bg-white rounded-t-lg pb-0">
+          <CardTitle>System Logs</CardTitle>
+          <CardDescription className="text-gray-500 mt-1">
+            Loading system logs...
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4 flex justify-center items-center h-64">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border shadow-sm rounded-lg">
