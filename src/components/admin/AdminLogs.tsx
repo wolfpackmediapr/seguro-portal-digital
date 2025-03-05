@@ -17,7 +17,7 @@ import { format, subDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ReloadIcon, SearchIcon, DownloadIcon, CalendarIcon } from 'lucide-react';
+import { RefreshCw, Search as SearchIcon, Download as DownloadIcon, Calendar as CalendarIcon } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -295,7 +295,7 @@ export function AdminLogs() {
             Error loading logs. Please try again later.
             <div className="mt-4">
               <Button onClick={handleRefresh}>
-                <ReloadIcon className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Try Again
               </Button>
             </div>
@@ -312,7 +312,7 @@ export function AdminLogs() {
           <span>{activeTab === 'activity' ? 'Activity Logs' : 'User Sessions'}</span>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={handleRefresh}>
-              <ReloadIcon className="mr-2 h-4 w-4" />
+              <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
             <Button variant="outline" onClick={exportToCsv}>
@@ -436,7 +436,7 @@ export function AdminLogs() {
                   onClick={handleRefresh} 
                   className="mt-2"
                 >
-                  <ReloadIcon className="mr-2 h-4 w-4" />
+                  <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
                 </Button>
               </div>
@@ -496,7 +496,7 @@ export function AdminLogs() {
                   onClick={handleRefresh} 
                   className="mt-2"
                 >
-                  <ReloadIcon className="mr-2 h-4 w-4" />
+                  <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
                 </Button>
               </div>
