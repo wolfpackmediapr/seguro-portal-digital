@@ -18,21 +18,66 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
   const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
+  
+  // Pagination state
+  const [activityPage, setActivityPage] = useState<number>(1);
+  const [sessionsPage, setSessionsPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [totalActivityLogs, setTotalActivityLogs] = useState<number>(0);
+  const [totalSessions, setTotalSessions] = useState<number>(0);
 
-  const refetchActivityLogs = useCallback(async () => {
+  const refetchActivityLogs = useCallback(async (page: number = 1) => {
     setIsLoadingActivity(true);
     setError(null);
+    setActivityPage(page);
 
     try {
       // Add a small delay to help with connection issues
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      console.log('Fetching activity logs with filters:', filters);
+      console.log('Fetching activity logs with filters:', filters, 'page:', page, 'pageSize:', pageSize);
       
+      // Calculate range for pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      // First, get the count for pagination
+      const countQuery = supabase
+        .from('user_activity_logs')
+        .select('id', { count: 'exact', head: true });
+      
+      // Apply filters for count query
+      if (filters.userId && filters.userId.trim() !== '') {
+        countQuery.eq('user_id', filters.userId);
+      }
+
+      if (filters.actionType) {
+        countQuery.eq('action_type', filters.actionType);
+      }
+
+      if (filters.startDate && filters.startDate.trim() !== '') {
+        countQuery.gte('created_at', filters.startDate);
+      }
+
+      if (filters.endDate && filters.endDate.trim() !== '') {
+        countQuery.lte('created_at', filters.endDate);
+      }
+      
+      const { count: totalCount, error: countError } = await countQuery;
+      
+      if (countError) {
+        console.error('Supabase error fetching activity logs count:', countError);
+        throw countError;
+      }
+      
+      setTotalActivityLogs(totalCount || 0);
+      
+      // Now fetch the actual data with pagination
       let query = supabase
         .from('user_activity_logs')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       // Apply filters - only if they have values
       if (filters.userId && filters.userId.trim() !== '') {
@@ -58,7 +103,7 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
         throw fetchError;
       }
 
-      console.log('Activity logs fetched successfully:', data?.length || 0, 'records');
+      console.log('Activity logs fetched successfully:', data?.length || 0, 'records out of', totalCount);
 
       // Convert JSON to proper type
       const typedLogs: UserActivityLog[] = data?.map(log => ({
@@ -82,22 +127,56 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
     } finally {
       setIsLoadingActivity(false);
     }
-  }, [filters, toast]);
+  }, [filters, toast, pageSize]);
 
-  const refetchSessions = useCallback(async () => {
+  const refetchSessions = useCallback(async (page: number = 1) => {
     setIsLoadingSessions(true);
     setError(null);
+    setSessionsPage(page);
 
     try {
       // Add a small delay to help with connection issues
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      console.log('Fetching sessions with filters:', filters);
+      console.log('Fetching sessions with filters:', filters, 'page:', page, 'pageSize:', pageSize);
       
+      // Calculate range for pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      
+      // First, get the count for pagination
+      const countQuery = supabase
+        .from('user_sessions')
+        .select('id', { count: 'exact', head: true });
+      
+      // Apply filters for count query
+      if (filters.userId && filters.userId.trim() !== '') {
+        countQuery.eq('user_id', filters.userId);
+      }
+
+      if (filters.startDate && filters.startDate.trim() !== '') {
+        countQuery.gte('login_time', filters.startDate);
+      }
+
+      if (filters.endDate && filters.endDate.trim() !== '') {
+        countQuery.lte('login_time', filters.endDate);
+      }
+      
+      const { count: totalCount, error: countError } = await countQuery;
+      
+      if (countError) {
+        console.error('Supabase error fetching sessions count:', countError);
+        throw countError;
+      }
+      
+      setTotalSessions(totalCount || 0);
+      
+      // Now fetch the actual data with pagination
       let query = supabase
         .from('user_sessions')
         .select('*')
-        .order('login_time', { ascending: false });
+        .order('login_time', { ascending: false })
+        .range(from, to);
 
       // Apply filters - only if they have values
       if (filters.userId && filters.userId.trim() !== '') {
@@ -119,7 +198,7 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
         throw fetchError;
       }
 
-      console.log('Sessions fetched successfully:', data?.length || 0, 'records');
+      console.log('Sessions fetched successfully:', data?.length || 0, 'records out of', totalCount);
 
       // Convert JSON to proper type
       const typedSessions: UserSession[] = data?.map(session => ({
@@ -145,7 +224,7 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
     } finally {
       setIsLoadingSessions(false);
     }
-  }, [filters, toast]);
+  }, [filters, toast, pageSize]);
 
   // Initial fetch
   useEffect(() => {
@@ -169,7 +248,7 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
         console.log("Active session found, fetching logs data");
         
         // Fetch both types of data in parallel to improve performance
-        await Promise.allSettled([refetchActivityLogs(), refetchSessions()]);
+        await Promise.allSettled([refetchActivityLogs(1), refetchSessions(1)]);
       } catch (error) {
         console.error("Error in initial fetch:", error);
         setIsLoadingActivity(false);
@@ -193,6 +272,15 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
     isLoadingSessions,
     refetchActivityLogs,
     refetchSessions,
-    error
+    error,
+    // Return pagination-related states and functions
+    activityPage,
+    sessionsPage,
+    pageSize,
+    totalActivityLogs,
+    totalSessions,
+    setActivityPage,
+    setSessionsPage,
+    setPageSize
   };
 };

@@ -16,7 +16,7 @@ import { LogFilters } from './logs/LogFilters';
 import { ExportButton } from './logs/ExportButton';
 import { LogActionType } from './types';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const AdminLogs = () => {
   const { toast } = useToast();
@@ -36,7 +36,16 @@ export const AdminLogs = () => {
     isLoadingSessions,
     refetchActivityLogs,
     refetchSessions,
-    error
+    error,
+    // Pagination states
+    activityPage,
+    sessionsPage,
+    totalActivityLogs,
+    totalSessions,
+    pageSize,
+    setActivityPage,
+    setSessionsPage,
+    setPageSize
   } = useFetchLogs({
     userId,
     actionType: actionType as LogActionType | undefined,
@@ -112,8 +121,11 @@ export const AdminLogs = () => {
   // Apply filters
   const handleApplyFilters = () => {
     console.log('Applying filters:', { userId, actionType, startDate, endDate });
-    refetchActivityLogs();
-    refetchSessions();
+    // Reset to first page when applying filters
+    setActivityPage(1);
+    setSessionsPage(1); 
+    refetchActivityLogs(1);
+    refetchSessions(1);
   };
 
   // Reset filters
@@ -126,10 +138,31 @@ export const AdminLogs = () => {
     // Wait for state to update before refetching
     setTimeout(() => {
       console.log('Filters reset, refetching...');
-      refetchActivityLogs();
-      refetchSessions();
+      setActivityPage(1);
+      setSessionsPage(1);
+      refetchActivityLogs(1);
+      refetchSessions(1);
     }, 0);
   };
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    if (activeTab === 'activity') {
+      setActivityPage(newPage);
+      refetchActivityLogs(newPage);
+    } else {
+      setSessionsPage(newPage);
+      refetchSessions(newPage);
+    }
+  };
+
+  // Calculate total pages
+  const totalPages = activeTab === 'activity' 
+    ? Math.ceil(totalActivityLogs / pageSize) 
+    : Math.ceil(totalSessions / pageSize);
+  
+  // Current page based on active tab
+  const currentPage = activeTab === 'activity' ? activityPage : sessionsPage;
 
   if (isLoadingActivity && isLoadingSessions) {
     return (
@@ -223,6 +256,70 @@ export const AdminLogs = () => {
         {activeTab === 'sessions' && (
           <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
         )}
+        
+        {/* Pagination UI */}
+        <div className="flex items-center justify-between mt-4 px-2">
+          <div className="text-sm text-gray-500">
+            {activeTab === 'activity' 
+              ? `Showing ${activityLogs.length} of ${totalActivityLogs} records`
+              : `Showing ${sessions.length} of ${totalSessions} records`
+            }
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1 || (activeTab === 'activity' ? isLoadingActivity : isLoadingSessions)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">Previous Page</span>
+            </Button>
+            
+            <div className="text-sm">
+              Page {currentPage} of {totalPages || 1}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={
+                currentPage >= totalPages || 
+                totalPages === 0 || 
+                (activeTab === 'activity' ? isLoadingActivity : isLoadingSessions)
+              }
+            >
+              <ChevronRight className="h-4 w-4" />
+              <span className="sr-only">Next Page</span>
+            </Button>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-500">Items per page:</span>
+            <select 
+              className="text-sm border rounded py-1 px-2"
+              value={pageSize}
+              onChange={(e) => {
+                const newSize = parseInt(e.target.value);
+                setPageSize(newSize);
+                setActivityPage(1);
+                setSessionsPage(1);
+                if (activeTab === 'activity') {
+                  refetchActivityLogs(1);
+                } else {
+                  refetchSessions(1);
+                }
+              }}
+            >
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
