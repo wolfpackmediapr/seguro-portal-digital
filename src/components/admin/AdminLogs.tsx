@@ -17,9 +17,9 @@ import { format, subDays } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ReloadIcon, SearchIcon, DownloadIcon, CalendarIcon } from 'lucide-react';
+import { RefreshCw, Search, Download, Calendar } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface UserWithEmail {
@@ -295,7 +295,7 @@ export function AdminLogs() {
             Error loading logs. Please try again later.
             <div className="mt-4">
               <Button onClick={handleRefresh}>
-                <ReloadIcon className="mr-2 h-4 w-4" />
+                <RefreshCw className="mr-2 h-4 w-4" />
                 Try Again
               </Button>
             </div>
@@ -312,11 +312,11 @@ export function AdminLogs() {
           <span>{activeTab === 'activity' ? 'Activity Logs' : 'User Sessions'}</span>
           <div className="flex space-x-2">
             <Button variant="outline" onClick={handleRefresh}>
-              <ReloadIcon className="mr-2 h-4 w-4" />
+              <RefreshCw className="mr-2 h-4 w-4" />
               Refresh
             </Button>
             <Button variant="outline" onClick={exportToCsv}>
-              <DownloadIcon className="mr-2 h-4 w-4" />
+              <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
           </div>
@@ -332,7 +332,7 @@ export function AdminLogs() {
             
             <div className="flex-1 flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
               <div className="relative flex-1">
-                <SearchIcon className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search logs..."
                   value={searchTerm}
@@ -366,14 +366,14 @@ export function AdminLogs() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-[240px] justify-start">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    <Calendar className="mr-2 h-4 w-4" />
                     <span>
                       {format(dateRange.from, 'PPP')} - {format(dateRange.to, 'PPP')}
                     </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
+                  <CalendarComponent
                     initialFocus
                     mode="range"
                     defaultMonth={dateRange.from}
@@ -436,7 +436,7 @@ export function AdminLogs() {
                   onClick={handleRefresh} 
                   className="mt-2"
                 >
-                  <ReloadIcon className="mr-2 h-4 w-4" />
+                  <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
                 </Button>
               </div>
@@ -496,7 +496,7 @@ export function AdminLogs() {
                   onClick={handleRefresh} 
                   className="mt-2"
                 >
-                  <ReloadIcon className="mr-2 h-4 w-4" />
+                  <RefreshCw className="mr-2 h-4 w-4" />
                   Refresh
                 </Button>
               </div>
