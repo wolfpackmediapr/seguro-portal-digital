@@ -12,32 +12,40 @@ import { Home, List, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const Dashboard = () => {
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("inicio");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkUserRole = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Check if user is super_admin
-        const { data: superAdminRole } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .eq('role', 'super_admin')
-          .single();
-        
-        setIsSuperAdmin(!!superAdminRole);
-        
-        // Get user's role for additional permissions if needed
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single();
+      setIsLoading(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          // Check if user is super_admin or admin
+          const { data: adminRole } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .in('role', ['super_admin', 'admin'])
+            .single();
           
-        setUserRole(roleData?.role || null);
+          setIsAdmin(!!adminRole);
+          
+          // Get user's role for additional permissions if needed
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+            
+          setUserRole(roleData?.role || null);
+        }
+      } catch (error) {
+        console.error("Error checking user role:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -45,8 +53,8 @@ const Dashboard = () => {
   }, []);
 
   const handleTabChange = (value: string) => {
-    // If user is not super admin and tries to access restricted tabs, redirect to inicio
-    if ((value === "settings" || value === "logs") && !isSuperAdmin) {
+    // If user is not admin and tries to access restricted tabs, redirect to inicio
+    if ((value === "settings" || value === "logs") && !isAdmin) {
       setActiveTab("inicio");
       return;
     }
@@ -73,8 +81,8 @@ const Dashboard = () => {
               Inicio
             </a>
             
-            {/* Only show logs tab to super admins */}
-            {isSuperAdmin && (
+            {/* Show logs tab to admins and super admins */}
+            {isAdmin && (
               <a 
                 href="#" 
                 onClick={() => handleTabChange("logs")}
@@ -88,8 +96,8 @@ const Dashboard = () => {
               </a>
             )}
             
-            {/* Only show configuration tab to super admins */}
-            {isSuperAdmin && (
+            {/* Show configuration tab to admins and super admins */}
+            {isAdmin && (
               <a 
                 href="#" 
                 onClick={() => handleTabChange("settings")}
@@ -106,69 +114,75 @@ const Dashboard = () => {
         </aside>
 
         <main className="flex-1 p-6">
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="mb-6">
-              <TabsTrigger value="inicio">Inicio</TabsTrigger>
-              {/* Only show logs tab to super admins */}
-              {isSuperAdmin && (
-                <TabsTrigger value="logs">Logs</TabsTrigger>
-              )}
-              {/* Only show settings tab to super admins */}
-              {isSuperAdmin && (
-                <TabsTrigger value="settings">Configuración</TabsTrigger>
-              )}
-            </TabsList>
-            
-            <TabsContent value="inicio">
-              <Tabs defaultValue="radio" className="w-full">
-                <TabsList>
-                  <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
-                  <TabsTrigger value="tv">Alerta TV</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="radio" className="mt-6">
-                  <TypeformEmbed 
-                    title="Alerta Radio"
-                    formId="01JEWES3GA7PPQN2SPRNHSVHPG"
-                  />
-                </TabsContent>
-                
-                <TabsContent value="tv" className="mt-6">
-                  <TypeformEmbed 
-                    title="Alerta TV"
-                    formId="01JEWEP95CN5YH8JCET8GEXRSK"
-                  />
-                </TabsContent>
-              </Tabs>
-            </TabsContent>
-
-            {/* Only render logs tab content for super admins */}
-            {isSuperAdmin && (
-              <TabsContent value="logs">
-                <AdminLogs />
-              </TabsContent>
-            )}
-
-            {/* Only render settings tab content for super admins */}
-            {isSuperAdmin && (
-              <TabsContent value="settings">
-                <Tabs defaultValue="users" className="w-full">
+          {isLoading ? (
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
+            </div>
+          ) : (
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="mb-6">
+                <TabsTrigger value="inicio">Inicio</TabsTrigger>
+                {/* Show logs tab to admins and super admins */}
+                {isAdmin && (
+                  <TabsTrigger value="logs">Logs</TabsTrigger>
+                )}
+                {/* Show settings tab to admins and super admins */}
+                {isAdmin && (
+                  <TabsTrigger value="settings">Configuración</TabsTrigger>
+                )}
+              </TabsList>
+              
+              <TabsContent value="inicio">
+                <Tabs defaultValue="radio" className="w-full">
                   <TabsList>
-                    <TabsTrigger value="users">Users</TabsTrigger>
-                    <TabsTrigger value="logs">Auth Logs</TabsTrigger>
+                    <TabsTrigger value="radio">Alerta Radio</TabsTrigger>
+                    <TabsTrigger value="tv">Alerta TV</TabsTrigger>
                   </TabsList>
-
-                  <TabsContent value="users" className="mt-6">
-                    <UserManagement />
+                  
+                  <TabsContent value="radio" className="mt-6">
+                    <TypeformEmbed 
+                      title="Alerta Radio"
+                      formId="01JEWES3GA7PPQN2SPRNHSVHPG"
+                    />
                   </TabsContent>
                   
-                  <TabsContent value="logs" className="mt-6">
-                    <AdminLogs />
+                  <TabsContent value="tv" className="mt-6">
+                    <TypeformEmbed 
+                      title="Alerta TV"
+                      formId="01JEWEP95CN5YH8JCET8GEXRSK"
+                    />
                   </TabsContent>
                 </Tabs>
               </TabsContent>
-            )}
-          </Tabs>
+
+              {/* Render logs tab content for admins and super admins */}
+              {isAdmin && (
+                <TabsContent value="logs">
+                  <AdminLogs />
+                </TabsContent>
+              )}
+
+              {/* Render settings tab content for admins and super admins */}
+              {isAdmin && (
+                <TabsContent value="settings">
+                  <Tabs defaultValue="users" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="users">Users</TabsTrigger>
+                      <TabsTrigger value="logs">Auth Logs</TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="users" className="mt-6">
+                      <UserManagement />
+                    </TabsContent>
+                    
+                    <TabsContent value="logs" className="mt-6">
+                      <AdminLogs />
+                    </TabsContent>
+                  </Tabs>
+                </TabsContent>
+              )}
+            </Tabs>
+          )}
         </main>
       </div>
 
