@@ -5,7 +5,7 @@ import { RefreshCw } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UserActivityLog, UserSession, LogActionType } from './types';
+import { LogActionType } from './types';
 import { useToast } from '@/hooks/use-toast';
 import { useFetchLogs } from './hooks/useFetchLogs';
 import { ActivityLogsTable } from './logs/ActivityLogsTable';
