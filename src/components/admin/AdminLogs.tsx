@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useFetchLogs } from './hooks/useFetchLogs';
+import { useLogs } from './hooks/useLogs';
 import { ActivityLogsTable } from './logs/ActivityLogsTable';
 import { SessionsTable } from './logs/SessionsTable';
 import { LogFilters } from './logs/LogFilters';
@@ -17,7 +17,6 @@ import { LogActionType } from './types';
 import { Loader2 } from 'lucide-react';
 import { PaginationControls } from './logs/PaginationControls';
 import { LogsTabs } from './logs/LogsTabs';
-import { useLogsRealtime } from './hooks/useLogsRealtime';
 
 export const AdminLogs = () => {
   const { toast } = useToast();
@@ -29,35 +28,22 @@ export const AdminLogs = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
-  // Fetch logs with the useFetchLogs custom hook
+  // Fetch logs with the useLogs custom hook
   const {
     activityLogs,
     sessions,
     isLoadingActivity,
     isLoadingSessions,
-    refetchActivityLogs,
-    refetchSessions,
+    fetchActivityLogs,
+    fetchSessions,
     error,
-    // Pagination states
-    activityPage,
-    sessionsPage,
-    totalActivityLogs,
-    totalSessions,
-    pageSize,
-    setActivityPage,
-    setSessionsPage,
-    setPageSize
-  } = useFetchLogs({
+    activityPagination,
+    sessionsPagination
+  } = useLogs({
     userId,
     actionType: actionType as LogActionType | undefined,
     startDate,
     endDate
-  });
-
-  // Setup realtime subscription for live updates using the custom hook
-  useLogsRealtime({
-    refetchActivityLogs,
-    refetchSessions
   });
 
   // Handle errors
@@ -76,10 +62,10 @@ export const AdminLogs = () => {
   const handleApplyFilters = () => {
     console.log('Applying filters:', { userId, actionType, startDate, endDate });
     // Reset to first page when applying filters
-    setActivityPage(1);
-    setSessionsPage(1); 
-    refetchActivityLogs(1);
-    refetchSessions(1);
+    activityPagination.setPage(1);
+    sessionsPagination.setPage(1); 
+    fetchActivityLogs(1);
+    fetchSessions(1);
   };
 
   // Reset filters
@@ -92,22 +78,11 @@ export const AdminLogs = () => {
     // Wait for state to update before refetching
     setTimeout(() => {
       console.log('Filters reset, refetching...');
-      setActivityPage(1);
-      setSessionsPage(1);
-      refetchActivityLogs(1);
-      refetchSessions(1);
+      activityPagination.setPage(1);
+      sessionsPagination.setPage(1);
+      fetchActivityLogs(1);
+      fetchSessions(1);
     }, 0);
-  };
-
-  // Pagination handlers
-  const handlePageChange = (newPage: number) => {
-    if (activeTab === 'activity') {
-      setActivityPage(newPage);
-      refetchActivityLogs(newPage);
-    } else {
-      setSessionsPage(newPage);
-      refetchSessions(newPage);
-    }
   };
 
   // Handle tab change
@@ -115,13 +90,26 @@ export const AdminLogs = () => {
     setActiveTab(tab);
   };
 
-  // Calculate total pages
-  const totalPages = activeTab === 'activity' 
-    ? Math.ceil(totalActivityLogs / pageSize) 
-    : Math.ceil(totalSessions / pageSize);
+  // Current pagination based on active tab
+  const currentPagination = activeTab === 'activity' 
+    ? activityPagination 
+    : sessionsPagination;
   
-  // Current page based on active tab
-  const currentPage = activeTab === 'activity' ? activityPage : sessionsPage;
+  const handlePageChange = (newPage: number) => {
+    if (activeTab === 'activity') {
+      activityPagination.setPage(newPage);
+    } else {
+      sessionsPagination.setPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (activeTab === 'activity') {
+      activityPagination.setPageSize(newSize);
+    } else {
+      sessionsPagination.setPageSize(newSize);
+    }
+  };
 
   if (isLoadingActivity && isLoadingSessions) {
     return (
@@ -195,22 +183,13 @@ export const AdminLogs = () => {
         
         {/* Pagination Controls Component */}
         <PaginationControls
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          totalItems={activeTab === 'activity' ? totalActivityLogs : totalSessions}
+          currentPage={currentPagination.page}
+          totalPages={Math.ceil(currentPagination.total / currentPagination.pageSize)}
+          pageSize={currentPagination.pageSize}
+          totalItems={currentPagination.total}
           isLoading={activeTab === 'activity' ? isLoadingActivity : isLoadingSessions}
           onPageChange={handlePageChange}
-          onPageSizeChange={(newSize) => {
-            setPageSize(newSize);
-            setActivityPage(1);
-            setSessionsPage(1);
-            if (activeTab === 'activity') {
-              refetchActivityLogs(1);
-            } else {
-              refetchSessions(1);
-            }
-          }}
+          onPageSizeChange={handlePageSizeChange}
           itemsName={activeTab === 'activity' ? 'logs' : 'sessions'}
         />
       </CardContent>
