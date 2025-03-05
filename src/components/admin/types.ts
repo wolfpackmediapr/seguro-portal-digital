@@ -1,20 +1,17 @@
 
-export type LogActionType = 
-  | 'login'
-  | 'logout'
-  | 'create_user'
-  | 'update_user'
-  | 'delete_user'
-  | 'session_start'
-  | 'session_end'
-  | 'feature_access';
+import { Database } from '@/integrations/supabase/types';
+
+export type Json = Database['public']['Enums']['log_action_type'] | 
+  string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+export type LogActionType = Database['public']['Enums']['log_action_type'];
 
 export interface UserManagementLog {
   id: string;
   action_type: string;
   performed_by: string;
   target_user: string | null;
-  details: Record<string, any>;
+  details: Record<string, any> | null;
   created_at: string;
 }
 
@@ -46,6 +43,9 @@ export interface UserSession {
   active: boolean;
   metadata: Record<string, any> | null;
   created_at: string;
+  device_info?: Record<string, any> | null;
+  ip_address?: string | null;
+  location?: Record<string, any> | null;
 }
 
 export interface UserActivityLog {

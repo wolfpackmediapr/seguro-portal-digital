@@ -1,124 +1,117 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { UserActivityLog, UserSession, LogActionType } from '@/components/admin/types';
+import { UserActivityLog, UserSession, LogActionType } from '../types';
 
-interface FetchLogsParams {
+interface LogsFilters {
   userId?: string;
   actionType?: LogActionType;
   startDate?: string;
   endDate?: string;
-  limit?: number;
 }
 
-export const useFetchLogs = ({
-  userId = '',
-  actionType,
-  startDate = '',
-  endDate = '',
-  limit = 100
-}: FetchLogsParams) => {
+export const useFetchLogs = (filters: LogsFilters = {}) => {
   const [activityLogs, setActivityLogs] = useState<UserActivityLog[]>([]);
   const [sessions, setSessions] = useState<UserSession[]>([]);
-  const [isLoadingActivity, setIsLoadingActivity] = useState(true);
-  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [isLoadingActivity, setIsLoadingActivity] = useState<boolean>(false);
+  const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchActivityLogs = useCallback(async () => {
+  const refetchActivityLogs = useCallback(async () => {
     setIsLoadingActivity(true);
     setError(null);
-    
+
     try {
       let query = supabase
         .from('user_activity_logs')
         .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
-      
+        .order('created_at', { ascending: false });
+
       // Apply filters
-      if (userId) {
-        query = query.ilike('user_id', `%${userId}%`);
+      if (filters.userId) {
+        query = query.eq('user_id', filters.userId);
       }
-      
-      if (actionType) {
-        query = query.eq('action_type', actionType);
+
+      if (filters.actionType) {
+        query = query.eq('action_type', filters.actionType);
       }
-      
-      if (startDate) {
-        query = query.gte('created_at', startDate);
+
+      if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate);
       }
-      
-      if (endDate) {
-        query = query.lte('created_at', endDate);
+
+      if (filters.endDate) {
+        query = query.lte('created_at', filters.endDate);
       }
-      
+
       const { data, error: fetchError } = await query;
-      
-      if (fetchError) {
-        throw new Error(fetchError.message);
-      }
-      
-      setActivityLogs(data || []);
-    } catch (err: any) {
+
+      if (fetchError) throw fetchError;
+
+      // Convert JSON to proper type
+      const typedLogs: UserActivityLog[] = data.map(log => ({
+        ...log,
+        details: log.details as Record<string, any> | null
+      }));
+
+      setActivityLogs(typedLogs);
+    } catch (err) {
       console.error('Error fetching activity logs:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch activity logs'));
     } finally {
       setIsLoadingActivity(false);
     }
-  }, [userId, actionType, startDate, endDate, limit]);
+  }, [filters]);
 
-  const fetchSessions = useCallback(async () => {
+  const refetchSessions = useCallback(async () => {
     setIsLoadingSessions(true);
     setError(null);
-    
+
     try {
       let query = supabase
         .from('user_sessions')
         .select('*')
-        .order('login_time', { ascending: false })
-        .limit(limit);
-      
-      // Apply user filter
-      if (userId) {
-        query = query.ilike('user_id', `%${userId}%`);
+        .order('login_time', { ascending: false });
+
+      // Apply filters
+      if (filters.userId) {
+        query = query.eq('user_id', filters.userId);
       }
-      
-      // Apply date filters
-      if (startDate) {
-        query = query.gte('login_time', startDate);
+
+      if (filters.startDate) {
+        query = query.gte('login_time', filters.startDate);
       }
-      
-      if (endDate) {
-        query = query.lte('login_time', endDate);
+
+      if (filters.endDate) {
+        query = query.lte('login_time', filters.endDate);
       }
-      
+
       const { data, error: fetchError } = await query;
-      
-      if (fetchError) {
-        throw new Error(fetchError.message);
-      }
-      
-      setSessions(data || []);
-    } catch (err: any) {
+
+      if (fetchError) throw fetchError;
+
+      // Convert JSON to proper type
+      const typedSessions: UserSession[] = data.map(session => ({
+        ...session,
+        metadata: session.metadata as Record<string, any> | null,
+        device_info: session.device_info as Record<string, any> | null,
+        location: session.location as Record<string, any> | null
+      }));
+
+      setSessions(typedSessions);
+    } catch (err) {
       console.error('Error fetching sessions:', err);
-      setError(err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
     } finally {
       setIsLoadingSessions(false);
     }
-  }, [userId, startDate, endDate, limit]);
+  }, [filters]);
 
-  const refetchActivityLogs = useCallback(() => {
-    fetchActivityLogs();
-  }, [fetchActivityLogs]);
-
-  const refetchSessions = useCallback(() => {
-    fetchSessions();
-  }, [fetchSessions]);
-
-  useEffect(() => {
-    fetchActivityLogs();
-    fetchSessions();
-  }, [fetchActivityLogs, fetchSessions]);
+  // Initial fetch
+  useState(() => {
+    refetchActivityLogs();
+    refetchSessions();
+  });
 
   return {
     activityLogs,

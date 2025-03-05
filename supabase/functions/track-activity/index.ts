@@ -40,6 +40,16 @@ serve(async (req) => {
       throw new Error('Missing required fields')
     }
 
+    // Try to get the client IP address
+    const clientIp = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    
+    // Enrich the details with IP info if not already present
+    const enrichedDetails = {
+      ...details,
+      ip_address: details.ip_address || clientIp,
+      timestamp: new Date().toISOString()
+    };
+
     // Log the activity
     const { data, error } = await supabase
       .from('user_activity_logs')
@@ -47,7 +57,7 @@ serve(async (req) => {
         user_id: user.id,
         action_type: action,
         session_id: sessionId,
-        details
+        details: enrichedDetails
       })
       .select()
       .single()
@@ -58,9 +68,14 @@ serve(async (req) => {
     if (sessionId) {
       await supabase
         .from('user_sessions')
-        .update({ last_ping: new Date().toISOString() })
+        .update({ 
+          last_ping: new Date().toISOString(),
+          ip_address: clientIp
+        })
         .eq('id', sessionId)
     }
+
+    console.log(`Activity logged: ${action} for user ${user.id}`);
 
     return new Response(
       JSON.stringify({ success: true, data }),

@@ -117,8 +117,11 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string | null
+          device_info: Json | null
           id: string
+          ip_address: string | null
           last_ping: string | null
+          location: Json | null
           login_time: string
           logout_time: string | null
           metadata: Json | null
@@ -127,8 +130,11 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string | null
+          device_info?: Json | null
           id?: string
+          ip_address?: string | null
           last_ping?: string | null
+          location?: Json | null
           login_time?: string
           logout_time?: string | null
           metadata?: Json | null
@@ -137,8 +143,11 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string | null
+          device_info?: Json | null
           id?: string
+          ip_address?: string | null
           last_ping?: string | null
+          location?: Json | null
           login_time?: string
           logout_time?: string | null
           metadata?: Json | null
@@ -148,7 +157,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_activity_logs_view: {
+        Row: {
+          action_type: Database["public"]["Enums"]["log_action_type"] | null
+          created_at: string | null
+          details: Json | null
+          id: string | null
+          session_id: string | null
+          user_id: string | null
+          user_role: Database["public"]["Enums"]["app_role"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "user_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
