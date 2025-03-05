@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useFetchLogs } from './hooks/useFetchLogs';
 import { ActivityLogsTable } from './logs/ActivityLogsTable';
@@ -15,8 +14,10 @@ import { SessionsTable } from './logs/SessionsTable';
 import { LogFilters } from './logs/LogFilters';
 import { ExportButton } from './logs/ExportButton';
 import { LogActionType } from './types';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { PaginationControls } from './logs/PaginationControls';
+import { LogsTabs } from './logs/LogsTabs';
+import { useLogsRealtime } from './hooks/useLogsRealtime';
 
 export const AdminLogs = () => {
   const { toast } = useToast();
@@ -53,58 +54,11 @@ export const AdminLogs = () => {
     endDate
   });
 
-  // Setup realtime subscription for live updates
-  useEffect(() => {
-    const setupRealtimeSubscription = async () => {
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) {
-          console.log("No active session for realtime updates");
-          return;
-        }
-        
-        console.log("Setting up realtime channel for logs updates");
-        const channel = supabase
-          .channel('admin-logs-changes')
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'user_activity_logs'
-            },
-            () => {
-              console.log('Activity logs changed, refetching...');
-              refetchActivityLogs();
-            }
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'user_sessions'
-            },
-            () => {
-              console.log('Sessions changed, refetching...');
-              refetchSessions();
-            }
-          )
-          .subscribe(status => {
-            console.log('Realtime subscription status:', status);
-          });
-
-        return () => {
-          console.log('Removing realtime channel');
-          supabase.removeChannel(channel);
-        };
-      } catch (error) {
-        console.error('Error setting up realtime subscription:', error);
-      }
-    };
-    
-    setupRealtimeSubscription();
-  }, [refetchActivityLogs, refetchSessions]);
+  // Setup realtime subscription for live updates using the custom hook
+  useLogsRealtime({
+    refetchActivityLogs,
+    refetchSessions
+  });
 
   // Handle errors
   useEffect(() => {
@@ -154,6 +108,11 @@ export const AdminLogs = () => {
       setSessionsPage(newPage);
       refetchSessions(newPage);
     }
+  };
+
+  // Handle tab change
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
   };
 
   // Calculate total pages
@@ -209,30 +168,7 @@ export const AdminLogs = () => {
           )}
         </div>
         
-        <div className="flex border-b mt-6">
-          <Button
-            variant="ghost"
-            className={`rounded-none border-b-2 px-4 py-2 ${
-              activeTab === 'activity'
-                ? 'border-primary text-primary font-medium'
-                : 'border-transparent text-gray-500'
-            }`}
-            onClick={() => setActiveTab('activity')}
-          >
-            Activity Logs
-          </Button>
-          <Button
-            variant="ghost"
-            className={`rounded-none border-b-2 px-4 py-2 ${
-              activeTab === 'sessions'
-                ? 'border-primary text-primary font-medium'
-                : 'border-transparent text-gray-500'
-            }`}
-            onClick={() => setActiveTab('sessions')}
-          >
-            User Sessions
-          </Button>
-        </div>
+        <LogsTabs activeTab={activeTab} onTabChange={handleTabChange} />
       </CardHeader>
       
       <CardContent className="pt-4">
@@ -257,69 +193,26 @@ export const AdminLogs = () => {
           <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
         )}
         
-        {/* Pagination UI */}
-        <div className="flex items-center justify-between mt-4 px-2">
-          <div className="text-sm text-gray-500">
-            {activeTab === 'activity' 
-              ? `Showing ${activityLogs.length} of ${totalActivityLogs} records`
-              : `Showing ${sessions.length} of ${totalSessions} records`
+        {/* Pagination Controls Component */}
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={activeTab === 'activity' ? totalActivityLogs : totalSessions}
+          isLoading={activeTab === 'activity' ? isLoadingActivity : isLoadingSessions}
+          onPageChange={handlePageChange}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setActivityPage(1);
+            setSessionsPage(1);
+            if (activeTab === 'activity') {
+              refetchActivityLogs(1);
+            } else {
+              refetchSessions(1);
             }
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1 || (activeTab === 'activity' ? isLoadingActivity : isLoadingSessions)}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span className="sr-only">Previous Page</span>
-            </Button>
-            
-            <div className="text-sm">
-              Page {currentPage} of {totalPages || 1}
-            </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={
-                currentPage >= totalPages || 
-                totalPages === 0 || 
-                (activeTab === 'activity' ? isLoadingActivity : isLoadingSessions)
-              }
-            >
-              <ChevronRight className="h-4 w-4" />
-              <span className="sr-only">Next Page</span>
-            </Button>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">Items per page:</span>
-            <select 
-              className="text-sm border rounded py-1 px-2"
-              value={pageSize}
-              onChange={(e) => {
-                const newSize = parseInt(e.target.value);
-                setPageSize(newSize);
-                setActivityPage(1);
-                setSessionsPage(1);
-                if (activeTab === 'activity') {
-                  refetchActivityLogs(1);
-                } else {
-                  refetchSessions(1);
-                }
-              }}
-            >
-              <option value="5">5</option>
-              <option value="10">10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-            </select>
-          </div>
-        </div>
+          }}
+          itemsName={activeTab === 'activity' ? 'logs' : 'sessions'}
+        />
       </CardContent>
     </Card>
   );
