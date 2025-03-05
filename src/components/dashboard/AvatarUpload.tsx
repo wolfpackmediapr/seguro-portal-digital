@@ -1,11 +1,10 @@
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, User } from "lucide-react";
 
 interface AvatarUploadProps {
   avatarUrl: string | null;
@@ -23,41 +22,38 @@ export function AvatarUpload({ avatarUrl, onUpload, onUploading }: AvatarUploadP
       onUploading(true);
 
       if (!event.target.files || event.target.files.length === 0) {
-        throw new Error("Debes seleccionar una imagen para subir.");
+        throw new Error("Debes seleccionar una imagen");
       }
 
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${Math.random()}.${fileExt}`;
 
-      // Check file size
-      if (file.size > 2 * 1024 * 1024) {
-        throw new Error("La imagen debe ser menor a 2MB");
-      }
-
-      // Check if file is an image
-      if (!file.type.match('image.*')) {
-        throw new Error("Solo se permiten imágenes");
-      }
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
+      // Upload file to storage
+      const { error: uploadError, data } = await supabase.storage
+        .from("avatars")
         .upload(filePath, file);
 
       if (uploadError) {
         throw uploadError;
       }
 
-      const { data } = supabase.storage
-        .from('avatars')
+      // Get URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
         .getPublicUrl(filePath);
 
-      onUpload(data.publicUrl);
-    } catch (error: any) {
+      onUpload(publicUrl);
+      
+      toast({
+        title: "Avatar actualizado",
+        description: "Tu foto de perfil ha sido actualizada",
+      });
+    } catch (error) {
       console.error("Error uploading avatar:", error);
       toast({
         title: "Error",
-        description: error.message || "No se pudo subir la imagen",
+        description: "No se pudo subir la imagen",
         variant: "destructive"
       });
     } finally {
@@ -66,43 +62,45 @@ export function AvatarUpload({ avatarUrl, onUpload, onUploading }: AvatarUploadP
     }
   }
 
+  const initials = (avatarUrl === null) ? "U" : "U"; // Default initials when no avatar
+
   return (
     <div className="flex flex-col items-center gap-4">
       <Avatar className="h-24 w-24">
-        <AvatarImage src={avatarUrl || undefined} alt="Profile picture" />
-        <AvatarFallback className="text-lg">
-          {avatarUrl ? '...' : 'U'}
+        <AvatarImage src={avatarUrl || undefined} alt="Profile" />
+        <AvatarFallback className="bg-primary text-white text-xl">
+          {initials}
         </AvatarFallback>
       </Avatar>
-      
-      <div className="text-center">
-        <Label
-          htmlFor="avatar-upload"
-          className="cursor-pointer inline-flex items-center justify-center gap-2 rounded-md bg-secondary text-secondary-foreground px-4 py-2 text-sm font-medium hover:bg-secondary/80"
-        >
-          {uploading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Subiendo...
-            </>
-          ) : (
-            <>
-              <Upload className="h-4 w-4" />
-              Cambiar foto
-            </>
-          )}
-        </Label>
-        <input
-          id="avatar-upload"
-          type="file"
-          accept="image/*"
-          onChange={uploadAvatar}
-          disabled={uploading}
-          className="sr-only"
-        />
-        <p className="text-xs text-gray-500 mt-2">
-          JPG, PNG o GIF. Máximo 2MB.
-        </p>
+
+      <div>
+        <label htmlFor="avatar-upload">
+          <Button 
+            variant="outline" 
+            className="cursor-pointer" 
+            disabled={uploading}
+            onClick={() => document.getElementById('avatar-upload')?.click()}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Subiendo...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Cambiar foto
+              </>
+            )}
+          </Button>
+          <input
+            type="file"
+            id="avatar-upload"
+            accept="image/*"
+            onChange={uploadAvatar}
+            className="hidden"
+          />
+        </label>
       </div>
     </div>
   );
