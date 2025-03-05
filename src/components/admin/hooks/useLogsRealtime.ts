@@ -1,7 +1,8 @@
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { debounce } from './useLogsUtils';
 
 interface UseLogsRealtimeProps {
   refetchActivityLogs: () => void;
@@ -13,6 +14,14 @@ export const useLogsRealtime = ({
   refetchSessions 
 }: UseLogsRealtimeProps) => {
   const { toast } = useToast();
+  const debouncedRefetchActivityLogs = useRef(debounce(refetchActivityLogs, 1000));
+  const debouncedRefetchSessions = useRef(debounce(refetchSessions, 1000));
+
+  useEffect(() => {
+    // Update the debounced functions when the props change
+    debouncedRefetchActivityLogs.current = debounce(refetchActivityLogs, 1000);
+    debouncedRefetchSessions.current = debounce(refetchSessions, 1000);
+  }, [refetchActivityLogs, refetchSessions]);
 
   useEffect(() => {
     const setupRealtimeSubscription = async () => {
@@ -44,8 +53,8 @@ export const useLogsRealtime = ({
               table: 'user_activity_logs'
             },
             () => {
-              console.log('Activity logs changed, refetching...');
-              refetchActivityLogs();
+              console.log('Activity logs changed, debounced refetching...');
+              debouncedRefetchActivityLogs.current();
             }
           )
           .on(
@@ -56,8 +65,8 @@ export const useLogsRealtime = ({
               table: 'user_sessions'
             },
             () => {
-              console.log('Sessions changed, refetching...');
-              refetchSessions();
+              console.log('Sessions changed, debounced refetching...');
+              debouncedRefetchSessions.current();
             }
           )
           .subscribe(status => {
@@ -79,5 +88,5 @@ export const useLogsRealtime = ({
     };
     
     setupRealtimeSubscription();
-  }, [refetchActivityLogs, refetchSessions, toast]);
+  }, [toast]);
 };

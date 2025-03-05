@@ -16,3 +16,19 @@ export const checkAuthSession = async (): Promise<boolean> => {
 export const networkDelay = async (): Promise<void> => {
   await new Promise(resolve => setTimeout(resolve, 300));
 };
+
+// Debounce function to prevent excessive fetching
+export const debounce = <T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): ((...args: Parameters<T>) => void) => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  
+  return (...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout);
+    
+    timeout = setTimeout(() => {
+      func(...args);
+    }, wait);
+  };
+};

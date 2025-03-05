@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { UserSession } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { LogsFilters, PaginationControls } from './useLogsTypes';
-import { checkAuthSession, networkDelay } from './useLogsUtils';
+import { checkAuthSession, networkDelay, debounce } from './useLogsUtils';
 
 export const useUserSessions = (filters: LogsFilters = {}) => {
   const [sessions, setSessions] = useState<UserSession[]>([]);
@@ -16,8 +16,15 @@ export const useUserSessions = (filters: LogsFilters = {}) => {
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
+  
+  // Track if a fetch is in progress to avoid duplicates
+  const [isFetching, setIsFetching] = useState<boolean>(false);
 
   const fetch = useCallback(async (currentPage: number = 1) => {
+    // Prevent concurrent fetches
+    if (isFetching) return;
+    
+    setIsFetching(true);
     setIsLoading(true);
     setError(null);
     setPage(currentPage);
@@ -110,8 +117,15 @@ export const useUserSessions = (filters: LogsFilters = {}) => {
       setError(err instanceof Error ? err : new Error('Failed to fetch sessions'));
     } finally {
       setIsLoading(false);
+      setIsFetching(false);
     }
-  }, [filters, toast, pageSize]);
+  }, [filters, toast, pageSize, isFetching]);
+
+  // Create a debounced version of the fetch function
+  const debouncedFetch = useCallback(
+    debounce((page: number) => fetch(page), 500),
+    [fetch]
+  );
 
   // Initial fetch
   useEffect(() => {
@@ -141,7 +155,7 @@ export const useUserSessions = (filters: LogsFilters = {}) => {
     };
     
     fetchData();
-  }, [fetch, toast]);
+  }, []);
 
   const pagination: PaginationControls = {
     page,
@@ -149,12 +163,12 @@ export const useUserSessions = (filters: LogsFilters = {}) => {
     total,
     setPage: (newPage: number) => {
       setPage(newPage);
-      fetch(newPage);
+      debouncedFetch(newPage);
     },
     setPageSize: (newSize: number) => {
       setPageSize(newSize);
       setPage(1);
-      fetch(1);
+      debouncedFetch(1);
     }
   };
 
