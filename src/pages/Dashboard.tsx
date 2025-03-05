@@ -5,7 +5,6 @@ import DashboardFooter from "@/components/dashboard/DashboardFooter";
 import TypeformEmbed from "@/components/dashboard/TypeformEmbed";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserManagement } from "@/components/admin/UserManagement";
-import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole } from "@/components/admin/types";
 import { Home, List, Settings } from "lucide-react";
@@ -54,7 +53,7 @@ const Dashboard = () => {
 
   const handleTabChange = (value: string) => {
     // If user is not admin and tries to access restricted tabs, redirect to inicio
-    if ((value === "settings" || value === "logs") && !isAdmin) {
+    if ((value === "settings") && !isAdmin) {
       setActiveTab("inicio");
       return;
     }
@@ -81,22 +80,7 @@ const Dashboard = () => {
               Inicio
             </a>
             
-            {/* Show logs tab to admins and super admins */}
-            {isAdmin && (
-              <a 
-                href="#" 
-                onClick={() => handleTabChange("logs")}
-                className={cn(
-                  "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
-                  activeTab === "logs" ? "bg-gray-100 text-gray-900" : "text-gray-600"
-                )}
-              >
-                <List className="w-4 h-4 mr-3" />
-                Logs
-              </a>
-            )}
-            
-            {/* Show configuration tab to admins and super admins */}
+            {/* Show settings tab to admins and super admins */}
             {isAdmin && (
               <a 
                 href="#" 
@@ -122,10 +106,6 @@ const Dashboard = () => {
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="mb-6">
                 <TabsTrigger value="inicio">Inicio</TabsTrigger>
-                {/* Show logs tab to admins and super admins */}
-                {isAdmin && (
-                  <TabsTrigger value="logs">Logs</TabsTrigger>
-                )}
                 {/* Show settings tab to admins and super admins */}
                 {isAdmin && (
                   <TabsTrigger value="settings">Configuración</TabsTrigger>
@@ -155,28 +135,16 @@ const Dashboard = () => {
                 </Tabs>
               </TabsContent>
 
-              {/* Render logs tab content for admins and super admins */}
-              {isAdmin && (
-                <TabsContent value="logs">
-                  <AdminLogs />
-                </TabsContent>
-              )}
-
               {/* Render settings tab content for admins and super admins */}
               {isAdmin && (
                 <TabsContent value="settings">
                   <Tabs defaultValue="users" className="w-full">
                     <TabsList>
                       <TabsTrigger value="users">Users</TabsTrigger>
-                      <TabsTrigger value="logs">Auth Logs</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="users" className="mt-6">
                       <UserManagement />
-                    </TabsContent>
-                    
-                    <TabsContent value="logs" className="mt-6">
-                      <AdminLogs />
                     </TabsContent>
                   </Tabs>
                 </TabsContent>
