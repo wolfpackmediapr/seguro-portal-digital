@@ -23,7 +23,7 @@ export const AdminLogs = () => {
   
   // Filters
   const [userId, setUserId] = useState('');
-  const [actionType, setActionType] = useState<LogActionType | ''>('');
+  const [actionType, setActionType] = useState<LogActionType | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
@@ -38,7 +38,7 @@ export const AdminLogs = () => {
     error
   } = useFetchLogs({
     userId,
-    actionType: actionType as LogActionType,
+    actionType: actionType as LogActionType | undefined,
     startDate,
     endDate
   });
@@ -100,7 +100,7 @@ export const AdminLogs = () => {
   // Reset filters
   const handleResetFilters = () => {
     setUserId('');
-    setActionType('');
+    setActionType(null);
     setStartDate('');
     setEndDate('');
     

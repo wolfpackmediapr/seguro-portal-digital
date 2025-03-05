@@ -107,7 +107,7 @@ export const useFetchLogs = (filters: LogsFilters = {}) => {
     }
   }, [filters]);
 
-  // Initial fetch - fix the useState to useEffect
+  // Initial fetch
   useEffect(() => {
     refetchActivityLogs();
     refetchSessions();
