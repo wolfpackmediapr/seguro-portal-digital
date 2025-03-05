@@ -8,8 +8,9 @@ import { UserManagement } from "@/components/admin/UserManagement";
 import { AdminLogs } from "@/components/admin/AdminLogs";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRole } from "@/components/admin/types";
-import { Home, List, Settings } from "lucide-react";
+import { Home, List, Settings, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserProfileSettings } from "@/components/dashboard/UserProfileSettings";
 
 const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -81,6 +82,19 @@ const Dashboard = () => {
               Inicio
             </a>
             
+            {/* New profile tab accessible to all users */}
+            <a 
+              href="#" 
+              onClick={() => handleTabChange("profile")}
+              className={cn(
+                "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
+                activeTab === "profile" ? "bg-gray-100 text-gray-900" : "text-gray-600"
+              )}
+            >
+              <User className="w-4 h-4 mr-3" />
+              Mi Perfil
+            </a>
+            
             {/* Show logs tab to admins and super admins */}
             {isAdmin && (
               <a 
@@ -122,6 +136,7 @@ const Dashboard = () => {
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <TabsList className="mb-6">
                 <TabsTrigger value="inicio">Inicio</TabsTrigger>
+                <TabsTrigger value="profile">Mi Perfil</TabsTrigger>
                 {/* Show logs tab to admins and super admins */}
                 {isAdmin && (
                   <TabsTrigger value="logs">Logs</TabsTrigger>
@@ -153,6 +168,11 @@ const Dashboard = () => {
                     />
                   </TabsContent>
                 </Tabs>
+              </TabsContent>
+              
+              {/* New profile tab content */}
+              <TabsContent value="profile">
+                <UserProfileSettings />
               </TabsContent>
 
               {/* Render logs tab content for admins and super admins */}
