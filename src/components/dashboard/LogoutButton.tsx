@@ -14,13 +14,23 @@ export function LogoutButton() {
   async function handleLogout() {
     try {
       setLoading(true);
-      await supabase.auth.signOut();
+      console.log("Attempting to sign out");
+      
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error signing out:", error);
+        throw error;
+      }
+      
+      console.log("User signed out successfully");
       navigate("/");
+      
     } catch (error) {
       console.error("Error signing out:", error);
       toast({
         title: "Error",
-        description: "No se pudo cerrar sesión",
+        description: "No se pudo cerrar sesión. Inténtelo de nuevo.",
         variant: "destructive"
       });
     } finally {
