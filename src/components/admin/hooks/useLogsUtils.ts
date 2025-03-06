@@ -33,23 +33,6 @@ export const debounce = <T extends (...args: any[]) => any>(
   };
 };
 
-// Fetch user email by user ID
-export const fetchUserEmail = async (userId: string): Promise<string | null> => {
-  try {
-    const { data, error } = await supabase.auth.admin.getUserById(userId);
-    
-    if (error || !data.user) {
-      console.error("Error fetching user data:", error);
-      return null;
-    }
-    
-    return data.user.email || null;
-  } catch (error) {
-    console.error("Exception fetching user email:", error);
-    return null;
-  }
-};
-
 // Cache for storing user emails to reduce API calls
 export const userEmailCache: Record<string, string> = {};
 
@@ -63,35 +46,41 @@ export const getUserEmail = async (userId: string): Promise<string> => {
   }
   
   try {
-    // Get user data from the auth.users table through an RPC function
-    const { data, error } = await supabase
+    // Try to get email from profiles table
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('email')
+      .select('full_name')
       .eq('id', userId)
       .single();
     
-    if (error) {
-      // If we can't get from profiles, try to get from user_roles with email
-      const { data: userData, error: userError } = await supabase
-        .rpc('get_user_email', { user_id: userId });
-      
-      if (userError || !userData) {
-        console.error("Error fetching user email:", userError);
-        return userId.substring(0, 8) + '...'; // Return truncated ID if email not found
-      }
-      
-      // Cache the email
-      userEmailCache[userId] = userData;
-      return userData;
+    if (!profileError && profileData?.full_name) {
+      // Use full_name from profiles if available
+      userEmailCache[userId] = profileData.full_name;
+      return profileData.full_name;
     }
     
-    // Cache the email from profiles
-    if (data?.email) {
-      userEmailCache[userId] = data.email;
-      return data.email;
+    // If no profile data, try direct method
+    const { data: userData, error: userError } = await supabase
+      .rpc('has_role', { user_id: userId, role: 'user' });
+    
+    if (userError) {
+      console.error("Error fetching user data:", userError);
+      // Return truncated ID if no data found
+      return userId.substring(0, 8) + '...';
     }
     
-    return userId.substring(0, 8) + '...';
+    // If role check passed, try to get user data another way
+    const { data: authData, error: authError } = await supabase.auth.admin
+      .getUserById(userId);
+    
+    if (authError || !authData?.user?.email) {
+      console.error("Error fetching user email:", authError);
+      return userId.substring(0, 8) + '...';
+    }
+    
+    // Cache the email
+    userEmailCache[userId] = authData.user.email;
+    return authData.user.email;
   } catch (error) {
     console.error("Exception getting user email:", error);
     return userId.substring(0, 8) + '...';
