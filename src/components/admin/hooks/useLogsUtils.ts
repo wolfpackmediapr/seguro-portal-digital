@@ -46,24 +46,17 @@ export const getUserEmail = async (userId: string): Promise<string> => {
   }
   
   try {
-    // First attempt to fetch from auth.users using admin API
-    try {
-      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
-      
-      if (!userError && userData?.user?.email) {
-        // Mask email for privacy
-        const email = userData.user.email;
-        const maskedEmail = maskEmail(email);
-        userEmailCache[userId] = maskedEmail;
-        return maskedEmail;
-      }
-    } catch (adminError) {
-      console.log("Admin API not available or error:", adminError);
-      // Continue to fallback options
+    // First, try to get auth user data directly (without using admin API)
+    const { data: authData } = await supabase.auth.getUser();
+    
+    if (authData?.user && authData.user.id === userId && authData.user.email) {
+      // If this is the current user, we can get their email directly
+      const maskedEmail = maskEmail(authData.user.email);
+      userEmailCache[userId] = maskedEmail;
+      return maskedEmail;
     }
     
-    // Fallback to profiles table if admin API fails
-    // Note: We're explicitly NOT using .single() and using regular accept header
+    // Fallback to profiles table
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('full_name')
