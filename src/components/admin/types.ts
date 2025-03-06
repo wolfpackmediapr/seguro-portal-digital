@@ -4,22 +4,8 @@ import { Database } from '@/integrations/supabase/types';
 export type Json = Database['public']['Enums']['log_action_type'] | 
   string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-// This should match the Supabase database enum
-export type LogActionType = 
-  | 'login'
-  | 'logout'
-  | 'profile_update'
-  | 'password_reset'
-  | 'settings_change'
-  | 'create_user'
-  | 'update_user'
-  | 'delete_user'
-  | 'session_start'
-  | 'session_end'
-  | 'feature_access'
-  | 'alert_create'
-  | 'alert_update'
-  | 'alert_delete';
+// This should match the Supabase database enum exactly
+export type LogActionType = Database['public']['Enums']['log_action_type'];
 
 export interface UserManagementLog {
   id: string;
