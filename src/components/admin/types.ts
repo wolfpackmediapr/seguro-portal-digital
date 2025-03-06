@@ -1,23 +1,10 @@
+
 import { Database } from '@/integrations/supabase/types';
 
 export type Json = Database['public']['Enums']['log_action_type'] | 
   string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-// Extend the Database LogActionType with additional values
-export type LogActionType = 
-  | 'login' 
-  | 'logout' 
-  | 'create_user' 
-  | 'update_user' 
-  | 'delete_user' 
-  | 'session_start' 
-  | 'session_end'
-  | 'feature_access'
-  | 'password_recovery'
-  | 'token_refresh'
-  | 'user_created'
-  | 'user_deleted'
-  | 'user_updated';
+export type LogActionType = Database['public']['Enums']['log_action_type'];
 
 export interface UserManagementLog {
   id: string;
@@ -55,22 +42,17 @@ export interface UserSession {
   last_ping: string;
   active: boolean;
   metadata: Record<string, any> | null;
-  device_info: {
-    userAgent?: string;
-    platform?: string;
-    language?: string;
-    screenSize?: string;
-  } | null;
-  location: Record<string, any> | null;
-  ip_address?: string;
   created_at: string;
+  device_info?: Record<string, any> | null;
+  ip_address?: string | null;
+  location?: Record<string, any> | null;
 }
 
 export interface UserActivityLog {
   id: string;
+  session_id: string | null;
   user_id: string;
   action_type: LogActionType;
-  session_id?: string;
-  details?: Record<string, any> | null;
+  details: Record<string, any> | null;
   created_at: string;
 }
