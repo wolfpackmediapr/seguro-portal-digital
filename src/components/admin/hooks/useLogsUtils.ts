@@ -46,28 +46,33 @@ export const getUserEmail = async (userId: string): Promise<string> => {
   }
   
   try {
-    // First try to get email from auth.users table using admin API
-    const { data: authData, error: authError } = await supabase.auth.admin.getUserById(userId);
-    
-    if (!authError && authData?.user?.email) {
-      // Mask email for privacy (show only first 3 chars + domain)
-      const email = authData.user.email;
-      const maskedEmail = maskEmail(email);
-      userEmailCache[userId] = maskedEmail;
-      return maskedEmail;
+    // First attempt to fetch from auth.users using admin API
+    try {
+      const { data: userData, error: userError } = await supabase.auth.admin.getUserById(userId);
+      
+      if (!userError && userData?.user?.email) {
+        // Mask email for privacy
+        const email = userData.user.email;
+        const maskedEmail = maskEmail(email);
+        userEmailCache[userId] = maskedEmail;
+        return maskedEmail;
+      }
+    } catch (adminError) {
+      console.log("Admin API not available or error:", adminError);
+      // Continue to fallback options
     }
     
     // Fallback to profiles table if admin API fails
+    // Note: We're explicitly NOT using .single() and using regular accept header
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('full_name, id')
-      .eq('id', userId)
-      .single();
+      .select('full_name')
+      .eq('id', userId);
     
-    if (!profileError && profileData?.full_name) {
+    if (!profileError && profileData && profileData.length > 0 && profileData[0]?.full_name) {
       // Use full_name from profiles if available
-      userEmailCache[userId] = profileData.full_name;
-      return profileData.full_name;
+      userEmailCache[userId] = profileData[0].full_name;
+      return profileData[0].full_name;
     }
     
     // Last resort: return truncated user ID for privacy
