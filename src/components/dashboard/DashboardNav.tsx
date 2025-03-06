@@ -33,6 +33,16 @@ const DashboardNav = () => {
     }
   };
 
+  const handleViewProfile = () => {
+    // Close the dropdown
+    setIsDropdownOpen(false);
+    // Toast notification - profile view functionality can be expanded later
+    toast({
+      title: "Profile",
+      description: "Viewing your profile",
+    });
+  };
+
   return (
     <nav className="bg-white border-b px-4 py-2 flex justify-between items-center">
       <div className="flex items-center space-x-2">
@@ -45,10 +55,11 @@ const DashboardNav = () => {
       </div>
       <div className="flex items-center space-x-4 relative">
         <div 
-          className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors flex items-center"
           onClick={toggleDropdown}
         >
           <UserRound className="w-6 h-6 text-gray-600" />
+          <span className="ml-2 text-sm hidden sm:inline">Mi Cuenta</span>
         </div>
         
         {isDropdownOpen && (
@@ -56,10 +67,10 @@ const DashboardNav = () => {
             <Button
               variant="ghost"
               className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-              onClick={() => setIsDropdownOpen(false)}
+              onClick={handleViewProfile}
             >
               <User className="mr-2 h-4 w-4" />
-              <span>View Profile</span>
+              <span>Ver Perfil</span>
             </Button>
             <Button
               variant="ghost"
@@ -67,7 +78,7 @@ const DashboardNav = () => {
               onClick={handleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Logout</span>
+              <span>Cerrar Sesión</span>
             </Button>
           </div>
         )}
