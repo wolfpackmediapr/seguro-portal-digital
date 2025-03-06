@@ -46,7 +46,7 @@ export const getUserEmail = async (userId: string): Promise<string> => {
   }
   
   try {
-    // Try to get email from profiles table
+    // Try to get user profile info from profiles table
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('full_name')
@@ -59,28 +59,8 @@ export const getUserEmail = async (userId: string): Promise<string> => {
       return profileData.full_name;
     }
     
-    // If no profile data, try direct method
-    const { data: userData, error: userError } = await supabase
-      .rpc('has_role', { user_id: userId, role: 'user' });
-    
-    if (userError) {
-      console.error("Error fetching user data:", userError);
-      // Return truncated ID if no data found
-      return userId.substring(0, 8) + '...';
-    }
-    
-    // If role check passed, try to get user data another way
-    const { data: authData, error: authError } = await supabase.auth.admin
-      .getUserById(userId);
-    
-    if (authError || !authData?.user?.email) {
-      console.error("Error fetching user email:", authError);
-      return userId.substring(0, 8) + '...';
-    }
-    
-    // Cache the email
-    userEmailCache[userId] = authData.user.email;
-    return authData.user.email;
+    // If no profile data, return user ID with truncation for privacy
+    return userId.substring(0, 8) + '...';
   } catch (error) {
     console.error("Exception getting user email:", error);
     return userId.substring(0, 8) + '...';
