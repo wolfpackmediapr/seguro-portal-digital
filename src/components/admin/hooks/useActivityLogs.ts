@@ -1,14 +1,11 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { UserActivityLog, LogActionType } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { LogsFilters, PaginationControls } from './useLogsTypes';
-import { checkAuthSession, networkDelay, debounce } from './useLogsUtils';
-import { Database } from '@/integrations/supabase/types';
-
-// Type for the database enum values only
-type DatabaseLogActionType = Database['public']['Enums']['log_action_type'];
+import { checkAuthSession, debounce } from './useLogsUtils';
+import { fetchActivityLogs, getActivityLogsCount } from './useActivityLogsApi';
+import { ActivityLogsHookState } from './useActivityLogsTypes';
 
 export const useActivityLogs = (filters: LogsFilters = {}) => {
   const [activityLogs, setActivityLogs] = useState<UserActivityLog[]>([]);
@@ -34,87 +31,27 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
     setPage(currentPage);
 
     try {
-      await networkDelay();
-      
       console.log('Fetching activity logs with filters:', filters, 'page:', currentPage, 'pageSize:', pageSize);
       
-      // Calculate range for pagination
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      
       // First, get the count for pagination
-      const countQuery = supabase
-        .from('user_activity_logs')
-        .select('id', { count: 'exact', head: true });
+      const totalCount = await getActivityLogsCount({
+        userId: filters.userId,
+        actionType: filters.actionType,
+        startDate: filters.startDate,
+        endDate: filters.endDate
+      });
       
-      // Apply filters for count query
-      if (filters.userId && filters.userId.trim() !== '') {
-        countQuery.eq('user_id', filters.userId);
-      }
-
-      if (filters.actionType) {
-        // Only apply the filter if the action type is a valid database enum value
-        const isValidDbEnum = isValidDatabaseActionType(filters.actionType);
-        if (isValidDbEnum) {
-          countQuery.eq('action_type', filters.actionType as DatabaseLogActionType);
-        } else {
-          console.log(`Action type "${filters.actionType}" is not a valid database enum value, skipping filter`);
-        }
-      }
-
-      if (filters.startDate && filters.startDate.trim() !== '') {
-        countQuery.gte('created_at', filters.startDate);
-      }
-
-      if (filters.endDate && filters.endDate.trim() !== '') {
-        countQuery.lte('created_at', filters.endDate);
-      }
-      
-      const { count: totalCount, error: countError } = await countQuery;
-      
-      if (countError) {
-        console.error('Supabase error fetching activity logs count:', countError);
-        throw countError;
-      }
-      
-      setTotal(totalCount || 0);
+      setTotal(totalCount);
       
       // Now fetch the actual data with pagination
-      let query = supabase
-        .from('user_activity_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(from, to);
-
-      // Apply filters - only if they have values
-      if (filters.userId && filters.userId.trim() !== '') {
-        query = query.eq('user_id', filters.userId);
-      }
-
-      if (filters.actionType) {
-        // Only apply the filter if the action type is a valid database enum value
-        const isValidDbEnum = isValidDatabaseActionType(filters.actionType);
-        if (isValidDbEnum) {
-          query = query.eq('action_type', filters.actionType as DatabaseLogActionType);
-        } else {
-          console.log(`Action type "${filters.actionType}" is not a valid database enum value, skipping filter`);
-        }
-      }
-
-      if (filters.startDate && filters.startDate.trim() !== '') {
-        query = query.gte('created_at', filters.startDate);
-      }
-
-      if (filters.endDate && filters.endDate.trim() !== '') {
-        query = query.lte('created_at', filters.endDate);
-      }
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) {
-        console.error('Supabase error fetching activity logs:', fetchError);
-        throw fetchError;
-      }
+      const data = await fetchActivityLogs({
+        page: currentPage,
+        pageSize,
+        userId: filters.userId,
+        actionType: filters.actionType,
+        startDate: filters.startDate,
+        endDate: filters.endDate
+      });
 
       console.log('Activity logs fetched successfully:', data?.length || 0, 'records out of', totalCount);
 
@@ -142,15 +79,6 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       setIsFetching(false);
     }
   }, [filters, toast, pageSize, isFetching]);
-
-  // Helper function to check if a LogActionType is a valid database enum value
-  const isValidDatabaseActionType = (actionType: LogActionType): boolean => {
-    const validTypes: DatabaseLogActionType[] = [
-      'login', 'logout', 'create_user', 'update_user', 
-      'delete_user', 'session_start', 'session_end', 'feature_access'
-    ];
-    return validTypes.includes(actionType as DatabaseLogActionType);
-  };
 
   // Create a debounced version of the fetch function
   const debouncedFetch = useCallback(
