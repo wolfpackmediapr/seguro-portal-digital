@@ -7,15 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { useFetchLogs } from './hooks/useFetchLogs';
+import { useLogs } from './hooks/useLogs';
 import { ActivityLogsTable } from './logs/ActivityLogsTable';
 import { SessionsTable } from './logs/SessionsTable';
 import { LogFilters } from './logs/LogFilters';
 import { ExportButton } from './logs/ExportButton';
 import { LogActionType } from './types';
-import { supabase } from '@/integrations/supabase/client';
+import { Loader2 } from 'lucide-react';
+import { PaginationControls } from './logs/PaginationControls';
+import { LogsTabs } from './logs/LogsTabs';
 
 export const AdminLogs = () => {
   const { toast } = useToast();
@@ -23,60 +24,27 @@ export const AdminLogs = () => {
   
   // Filters
   const [userId, setUserId] = useState('');
-  const [actionType, setActionType] = useState<LogActionType | ''>('');
+  const [actionType, setActionType] = useState<LogActionType | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
-  // Fetch logs with the useFetchLogs custom hook
+  // Fetch logs with the useLogs custom hook
   const {
     activityLogs,
     sessions,
     isLoadingActivity,
     isLoadingSessions,
-    refetchActivityLogs,
-    refetchSessions,
-    error
-  } = useFetchLogs({
+    fetchActivityLogs,
+    fetchSessions,
+    error,
+    activityPagination,
+    sessionsPagination
+  } = useLogs({
     userId,
-    actionType: actionType as LogActionType,
+    actionType: actionType as LogActionType | undefined,
     startDate,
     endDate
   });
-
-  // Setup realtime subscription for live updates
-  useEffect(() => {
-    const channel = supabase
-      .channel('admin-logs-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_activity_logs'
-        },
-        () => {
-          console.log('Activity logs changed, refetching...');
-          refetchActivityLogs();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_sessions'
-        },
-        () => {
-          console.log('Sessions changed, refetching...');
-          refetchSessions();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetchActivityLogs, refetchSessions]);
 
   // Handle errors
   useEffect(() => {
@@ -93,79 +61,137 @@ export const AdminLogs = () => {
   // Apply filters
   const handleApplyFilters = () => {
     console.log('Applying filters:', { userId, actionType, startDate, endDate });
-    refetchActivityLogs();
-    refetchSessions();
+    // Reset to first page when applying filters
+    activityPagination.setPage(1);
+    sessionsPagination.setPage(1); 
+    fetchActivityLogs(1);
+    fetchSessions(1);
   };
 
   // Reset filters
   const handleResetFilters = () => {
     setUserId('');
-    setActionType('');
+    setActionType(null);
     setStartDate('');
     setEndDate('');
     
     // Wait for state to update before refetching
     setTimeout(() => {
       console.log('Filters reset, refetching...');
-      refetchActivityLogs();
-      refetchSessions();
+      activityPagination.setPage(1);
+      sessionsPagination.setPage(1);
+      fetchActivityLogs(1);
+      fetchSessions(1);
     }, 0);
   };
 
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>System Logs</CardTitle>
-        <CardDescription>
-          View and monitor user activity and sessions across the application.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center justify-between mb-4">
-            <TabsList>
-              <TabsTrigger value="activity">Activity Logs</TabsTrigger>
-              <TabsTrigger value="sessions">User Sessions</TabsTrigger>
-            </TabsList>
-            
-            {activeTab === 'activity' && (
-              <ExportButton 
-                data={activityLogs} 
-                filename="activity-logs" 
-                isDisabled={isLoadingActivity || activityLogs.length === 0}
-              />
-            )}
-            
-            {activeTab === 'sessions' && (
-              <ExportButton 
-                data={sessions} 
-                filename="user-sessions" 
-                isDisabled={isLoadingSessions || sessions.length === 0}
-              />
-            )}
+  // Handle tab change
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+  };
+
+  // Current pagination based on active tab
+  const currentPagination = activeTab === 'activity' 
+    ? activityPagination 
+    : sessionsPagination;
+  
+  const handlePageChange = (newPage: number) => {
+    if (activeTab === 'activity') {
+      activityPagination.setPage(newPage);
+    } else {
+      sessionsPagination.setPage(newPage);
+    }
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (activeTab === 'activity') {
+      activityPagination.setPageSize(newSize);
+    } else {
+      sessionsPagination.setPageSize(newSize);
+    }
+  };
+
+  if (isLoadingActivity && isLoadingSessions) {
+    return (
+      <Card className="border shadow-sm rounded-lg">
+        <CardHeader className="bg-white rounded-t-lg pb-0">
+          <CardTitle>System Logs</CardTitle>
+          <CardDescription className="text-gray-500 mt-1">
+            Loading system logs...
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4 flex justify-center items-center h-64">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Loading data...</p>
           </div>
-          
-          <LogFilters
-            userId={userId}
-            setUserId={setUserId}
-            actionType={actionType}
-            setActionType={setActionType}
-            startDate={startDate}
-            setStartDate={setStartDate}
-            endDate={endDate}
-            setEndDate={setEndDate}
-            onApplyFilters={handleApplyFilters}
-            onResetFilters={handleResetFilters}
-          />
-          
-          <TabsContent value="activity" className="mt-0">
-            <ActivityLogsTable logs={activityLogs} isLoading={isLoadingActivity} />
-          </TabsContent>
-          
-          <TabsContent value="sessions" className="mt-0">
-            <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
-          </TabsContent>
-        </Tabs>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border shadow-sm rounded-lg">
+      <CardHeader className="bg-white rounded-t-lg pb-0">
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>System Logs</CardTitle>
+            <CardDescription className="text-gray-500 mt-1">
+              View and monitor user activity and sessions across the application.
+            </CardDescription>
+          </div>
+          {activeTab === 'activity' && (
+            <ExportButton 
+              data={activityLogs} 
+              filename="activity-logs" 
+              isDisabled={isLoadingActivity || activityLogs.length === 0}
+            />
+          )}
+          {activeTab === 'sessions' && (
+            <ExportButton 
+              data={sessions} 
+              filename="user-sessions" 
+              isDisabled={isLoadingSessions || sessions.length === 0}
+            />
+          )}
+        </div>
+        
+        <LogsTabs activeTab={activeTab} onTabChange={handleTabChange} />
+      </CardHeader>
+      
+      <CardContent className="pt-4">
+        <LogFilters
+          userId={userId}
+          setUserId={setUserId}
+          actionType={actionType}
+          setActionType={setActionType}
+          startDate={startDate}
+          setStartDate={setStartDate}
+          endDate={endDate}
+          setEndDate={setEndDate}
+          onApplyFilters={handleApplyFilters}
+          onResetFilters={handleResetFilters}
+        />
+        
+        {activeTab === 'activity' && (
+          <ActivityLogsTable logs={activityLogs} isLoading={isLoadingActivity} />
+        )}
+        
+        {activeTab === 'sessions' && (
+          <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
+        )}
+        
+        {/* Pagination Controls Component */}
+        <PaginationControls
+          currentPage={currentPagination.page}
+          totalPages={Math.ceil(currentPagination.total / currentPagination.pageSize)}
+          pageSize={currentPagination.pageSize}
+          totalItems={currentPagination.total}
+          isLoading={activeTab === 'activity' ? isLoadingActivity : isLoadingSessions}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          itemsName={activeTab === 'activity' ? 'logs' : 'sessions'}
+        />
       </CardContent>
     </Card>
   );
