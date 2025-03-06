@@ -4,15 +4,23 @@ import { useActivityLogs } from './useActivityLogs';
 import { useUserSessions } from './useUserSessions';
 import { useLogsRealtime } from './useLogsRealtime';
 import { LogsFilters } from './useLogsTypes';
+import { mapActionType } from '../utils/actionTypeUtils';
 
 export const useLogs = (filters: LogsFilters = {}) => {
+  // Map action type if present
+  const mappedFilters = { ...filters };
+  if (filters.actionType) {
+    const mappedActionType = mapActionType(filters.actionType);
+    mappedFilters.actionType = mappedActionType || undefined;
+  }
+
   const {
     activityLogs,
     isLoading: isLoadingActivity,
     fetch: fetchActivityLogs,
     error: activityError,
     pagination: activityPagination
-  } = useActivityLogs(filters);
+  } = useActivityLogs(mappedFilters);
 
   const {
     sessions,
@@ -20,7 +28,7 @@ export const useLogs = (filters: LogsFilters = {}) => {
     fetch: fetchSessions,
     error: sessionsError,
     pagination: sessionsPagination
-  } = useUserSessions(filters);
+  } = useUserSessions(mappedFilters);
 
   // Combine errors
   const error = activityError || sessionsError;

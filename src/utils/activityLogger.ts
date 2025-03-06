@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { LogActionType } from "@/components/admin/types";
+import { mapActionType } from "@/components/admin/utils/actionTypeUtils";
 
 interface LogActivityParams {
   action: LogActionType;
@@ -14,10 +15,13 @@ export const logActivity = async ({ action, sessionId, details }: LogActivityPar
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
+    // Map action type if needed
+    const mappedAction = mapActionType(action) || action;
+
     // Call the edge function to log the activity
     await supabase.functions.invoke('track-activity', {
       body: {
-        action,
+        action: mappedAction,
         sessionId,
         details: details || {}
       }
