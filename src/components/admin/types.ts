@@ -4,7 +4,9 @@ import { Database } from '@/integrations/supabase/types';
 export type Json = Database['public']['Enums']['log_action_type'] | 
   string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type LogActionType = Database['public']['Enums']['log_action_type'];
+// Extend the Database LogActionType with additional values
+export type LogActionType = Database['public']['Enums']['log_action_type'] | 
+  'password_recovery' | 'token_refresh' | 'user_created' | 'user_deleted' | 'user_updated';
 
 export interface UserManagementLog {
   id: string;
