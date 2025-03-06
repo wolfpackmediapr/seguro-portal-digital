@@ -11,7 +11,10 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(),
+    react({
+      devTarget: 'es2022',
+      plugins: [],
+    }),
     mode === 'development' &&
     componentTagger(),
   ].filter(Boolean),
@@ -20,4 +23,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    target: 'es2020',
+    sourcemap: true,
+    minify: 'terser',
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
+  }
 }));

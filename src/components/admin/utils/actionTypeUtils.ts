@@ -1,3 +1,4 @@
+
 import { LogActionType } from '../types';
 
 // Valid action types from the database enum
@@ -9,7 +10,13 @@ const validActionTypes: LogActionType[] = [
   'delete_user',
   'session_start',
   'session_end',
-  'feature_access'
+  'feature_access',
+  'profile_update',
+  'password_reset',
+  'settings_change',
+  'alert_create',
+  'alert_update',
+  'alert_delete'
 ];
 
 // Map from client-side action types to database action types
@@ -17,7 +24,7 @@ const actionTypeMap: Record<string, LogActionType> = {
   'user_created': 'create_user',
   'user_updated': 'update_user',
   'user_deleted': 'delete_user',
-  'password_recovery': 'login',
+  'password_recovery': 'password_reset',
   'token_refresh': 'login',
   // Add any other mappings as needed
 };

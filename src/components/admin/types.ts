@@ -1,3 +1,4 @@
+
 import { Database } from '@/integrations/supabase/types';
 
 export type Json = Database['public']['Enums']['log_action_type'] | 
@@ -9,6 +10,12 @@ export type LogActionType =
   | 'profile_update'
   | 'password_reset'
   | 'settings_change'
+  | 'create_user'
+  | 'update_user'
+  | 'delete_user'
+  | 'session_start'
+  | 'session_end'
+  | 'feature_access'
   | 'alert_create'
   | 'alert_update'
   | 'alert_delete';
