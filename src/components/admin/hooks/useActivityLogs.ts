@@ -49,8 +49,8 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       }
 
       if (filters.actionType) {
-        // Since we're using the database enum type directly, this should match
-        countQuery.eq('action_type', filters.actionType as string);
+        // Use the action type directly without casting
+        countQuery.eq('action_type', filters.actionType);
       }
 
       if (filters.startDate && filters.startDate.trim() !== '') {
@@ -83,8 +83,8 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       }
 
       if (filters.actionType) {
-        // Since we're using the database enum type directly, this should match
-        query = query.eq('action_type', filters.actionType as string);
+        // Use the action type directly without casting
+        query = query.eq('action_type', filters.actionType);
       }
 
       if (filters.startDate && filters.startDate.trim() !== '') {
