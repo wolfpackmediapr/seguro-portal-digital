@@ -3,30 +3,23 @@ import React, { useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useLogs } from './hooks/useLogs';
+import { useLogFilters } from './hooks/useLogFilters';
 import { ActivityLogsTable } from './logs/ActivityLogsTable';
 import { SessionsTable } from './logs/SessionsTable';
 import { LogFilters } from './logs/LogFilters';
-import { ExportButton } from './logs/ExportButton';
-import { LogActionType } from './types';
-import { Loader2 } from 'lucide-react';
-import { PaginationControls } from './logs/PaginationControls';
-import { LogsTabs } from './logs/LogsTabs';
+import { LogsLoadingState } from './logs/LogsLoadingState';
+import { LogsHeader } from './logs/LogsHeader';
+import { LogsPaginationWrapper } from './logs/LogsPaginationWrapper';
 
 export const AdminLogs = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('activity');
   
-  // Filters
-  const [userId, setUserId] = useState('');
-  const [actionType, setActionType] = useState<LogActionType | null>(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  // Use the custom hook for filter state
+  const { filters, setters, resetFilters } = useLogFilters();
   
   // Fetch logs with the useLogs custom hook
   const {
@@ -40,10 +33,10 @@ export const AdminLogs = () => {
     activityPagination,
     sessionsPagination
   } = useLogs({
-    userId,
-    actionType: actionType as LogActionType | undefined,
-    startDate,
-    endDate
+    userId: filters.userId,
+    actionType: filters.actionType,
+    startDate: filters.startDate,
+    endDate: filters.endDate
   });
 
   // Handle errors
@@ -60,7 +53,7 @@ export const AdminLogs = () => {
 
   // Apply filters
   const handleApplyFilters = () => {
-    console.log('Applying filters:', { userId, actionType, startDate, endDate });
+    console.log('Applying filters:', filters);
     // Reset to first page when applying filters
     activityPagination.setPage(1);
     sessionsPagination.setPage(1); 
@@ -70,10 +63,7 @@ export const AdminLogs = () => {
 
   // Reset filters
   const handleResetFilters = () => {
-    setUserId('');
-    setActionType(null);
-    setStartDate('');
-    setEndDate('');
+    resetFilters();
     
     // Wait for state to update before refetching
     setTimeout(() => {
@@ -88,16 +78,6 @@ export const AdminLogs = () => {
   // Handle tab change
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-  };
-
-  // Handle action type change
-  const handleActionTypeChange = (value: string) => {
-    if (value === 'clear') {
-      setActionType(null);
-    } else {
-      // Only set valid action types from the enum
-      setActionType(value as LogActionType);
-    }
   };
 
   // Add the missing handlers for pagination
@@ -123,63 +103,33 @@ export const AdminLogs = () => {
     : sessionsPagination;
   
   if (isLoadingActivity && isLoadingSessions) {
-    return (
-      <Card className="border shadow-sm rounded-lg">
-        <CardHeader className="bg-white rounded-t-lg pb-0">
-          <CardTitle>System Logs</CardTitle>
-          <CardDescription className="text-gray-500 mt-1">
-            Loading system logs...
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="pt-4 flex justify-center items-center h-64">
-          <div className="flex flex-col items-center space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Loading data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <LogsLoadingState />;
   }
+
+  const currentData = activeTab === 'activity' ? activityLogs : sessions;
+  const currentLoading = activeTab === 'activity' ? isLoadingActivity : isLoadingSessions;
+  const filename = activeTab === 'activity' ? 'activity-logs' : 'user-sessions';
 
   return (
     <Card className="border shadow-sm rounded-lg">
-      <CardHeader className="bg-white rounded-t-lg pb-0">
-        <div className="flex justify-between items-center">
-          <div>
-            <CardTitle>System Logs</CardTitle>
-            <CardDescription className="text-gray-500 mt-1">
-              View and monitor user activity and sessions across the application.
-            </CardDescription>
-          </div>
-          {activeTab === 'activity' && (
-            <ExportButton 
-              data={activityLogs} 
-              filename="activity-logs" 
-              isDisabled={isLoadingActivity || activityLogs.length === 0}
-            />
-          )}
-          {activeTab === 'sessions' && (
-            <ExportButton 
-              data={sessions} 
-              filename="user-sessions" 
-              isDisabled={isLoadingSessions || sessions.length === 0}
-            />
-          )}
-        </div>
-        
-        <LogsTabs activeTab={activeTab} onTabChange={handleTabChange} />
-      </CardHeader>
+      <LogsHeader 
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        data={currentData}
+        isLoading={currentLoading}
+        filename={filename}
+      />
       
       <CardContent className="pt-4">
         <LogFilters
-          userId={userId}
-          setUserId={setUserId}
-          actionType={actionType}
-          setActionType={handleActionTypeChange}
-          startDate={startDate}
-          setStartDate={setStartDate}
-          endDate={endDate}
-          setEndDate={setEndDate}
+          userId={filters.userId}
+          setUserId={setters.setUserId}
+          actionType={filters.actionType}
+          setActionType={setters.setActionType}
+          startDate={filters.startDate}
+          setStartDate={setters.setStartDate}
+          endDate={filters.endDate}
+          setEndDate={setters.setEndDate}
           onApplyFilters={handleApplyFilters}
           onResetFilters={handleResetFilters}
         />
@@ -192,12 +142,12 @@ export const AdminLogs = () => {
           <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
         )}
         
-        <PaginationControls
+        <LogsPaginationWrapper
           currentPage={currentPagination.page}
           totalPages={Math.ceil(currentPagination.total / currentPagination.pageSize)}
           pageSize={currentPagination.pageSize}
           totalItems={currentPagination.total}
-          isLoading={activeTab === 'activity' ? isLoadingActivity : isLoadingSessions}
+          isLoading={currentLoading}
           onPageChange={handlePageChange}
           onPageSizeChange={handlePageSizeChange}
           itemsName={activeTab === 'activity' ? 'logs' : 'sessions'}
