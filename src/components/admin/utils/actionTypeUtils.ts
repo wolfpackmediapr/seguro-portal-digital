@@ -1,3 +1,4 @@
+
 import { LogActionType } from '../types';
 
 // We're now getting valid action types directly from the database type
@@ -20,6 +21,7 @@ const actionTypeMap: Record<string, LogActionType> = {
   'user_deleted': 'delete_user',
   'password_recovery': 'login',
   'token_refresh': 'login',
+  'clear': 'login', // Map 'clear' to a valid action type for internal handling
   // Add any other mappings as needed
 };
 
@@ -27,6 +29,9 @@ const actionTypeMap: Record<string, LogActionType> = {
  * Validates if an action type is valid according to the database enum
  */
 export const isValidActionType = (actionType: string): boolean => {
+  // Special case for the clear option
+  if (actionType === 'clear') return true;
+  
   return validActionTypes.includes(actionType as LogActionType);
 };
 
@@ -36,6 +41,9 @@ export const isValidActionType = (actionType: string): boolean => {
  * Returns null if the action type is invalid and has no mapping
  */
 export const mapActionType = (actionType: string): LogActionType | null => {
+  // Special case for the clear option
+  if (actionType === 'clear') return null;
+  
   // If it's already a valid database action type, return it
   if (isValidActionType(actionType)) {
     return actionType as LogActionType;

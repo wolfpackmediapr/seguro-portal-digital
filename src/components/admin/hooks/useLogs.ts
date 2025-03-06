@@ -10,8 +10,13 @@ export const useLogs = (filters: LogsFilters = {}) => {
   // Map action type if present
   const mappedFilters = { ...filters };
   if (filters.actionType) {
-    const mappedActionType = mapActionType(filters.actionType);
-    mappedFilters.actionType = mappedActionType || undefined;
+    // Skip mapping for the special 'clear' case
+    if (filters.actionType === 'clear') {
+      mappedFilters.actionType = undefined;
+    } else {
+      const mappedActionType = mapActionType(filters.actionType);
+      mappedFilters.actionType = mappedActionType || undefined;
+    }
   }
 
   const {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -90,27 +89,21 @@ export const AdminLogs = () => {
     setActiveTab(tab);
   };
 
+  // Handle action type change
+  const handleActionTypeChange = (value: LogActionType) => {
+    // If "clear" is selected, set actionType to null
+    if (value === 'clear') {
+      setActionType(null);
+    } else {
+      setActionType(value);
+    }
+  };
+
   // Current pagination based on active tab
   const currentPagination = activeTab === 'activity' 
     ? activityPagination 
     : sessionsPagination;
   
-  const handlePageChange = (newPage: number) => {
-    if (activeTab === 'activity') {
-      activityPagination.setPage(newPage);
-    } else {
-      sessionsPagination.setPage(newPage);
-    }
-  };
-
-  const handlePageSizeChange = (newSize: number) => {
-    if (activeTab === 'activity') {
-      activityPagination.setPageSize(newSize);
-    } else {
-      sessionsPagination.setPageSize(newSize);
-    }
-  };
-
   if (isLoadingActivity && isLoadingSessions) {
     return (
       <Card className="border shadow-sm rounded-lg">
@@ -164,7 +157,7 @@ export const AdminLogs = () => {
           userId={userId}
           setUserId={setUserId}
           actionType={actionType}
-          setActionType={setActionType}
+          setActionType={handleActionTypeChange}
           startDate={startDate}
           setStartDate={setStartDate}
           endDate={endDate}
@@ -181,7 +174,6 @@ export const AdminLogs = () => {
           <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
         )}
         
-        {/* Pagination Controls Component */}
         <PaginationControls
           currentPage={currentPagination.page}
           totalPages={Math.ceil(currentPagination.total / currentPagination.pageSize)}
