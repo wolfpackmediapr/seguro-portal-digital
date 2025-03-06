@@ -1,10 +1,17 @@
-
 import { Database } from '@/integrations/supabase/types';
 
 export type Json = Database['public']['Enums']['log_action_type'] | 
   string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
-export type LogActionType = Database['public']['Enums']['log_action_type'];
+export type LogActionType = 
+  | 'login'
+  | 'logout'
+  | 'profile_update'
+  | 'password_reset'
+  | 'settings_change'
+  | 'alert_create'
+  | 'alert_update'
+  | 'alert_delete';
 
 export interface UserManagementLog {
   id: string;
