@@ -10,13 +10,10 @@ export const useLogs = (filters: LogsFilters = {}) => {
   // Map action type if present
   const mappedFilters = { ...filters };
   if (filters.actionType) {
-    // Skip mapping for the special 'clear' case
-    if (filters.actionType === 'clear') {
-      mappedFilters.actionType = undefined;
-    } else {
-      const mappedActionType = mapActionType(filters.actionType);
-      mappedFilters.actionType = mappedActionType || undefined;
-    }
+    // The actionType is already undefined or a valid LogActionType at this point
+    // since we handle 'clear' in the AdminLogs component
+    const mappedActionType = mapActionType(filters.actionType);
+    mappedFilters.actionType = mappedActionType || undefined;
   }
 
   const {

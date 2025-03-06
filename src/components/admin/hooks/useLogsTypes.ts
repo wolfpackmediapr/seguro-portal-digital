@@ -3,7 +3,7 @@ import { LogActionType } from '../types';
 
 export interface LogsFilters {
   userId?: string;
-  actionType?: LogActionType;
+  actionType?: LogActionType; // We handle 'clear' in the AdminLogs component, not in this type
   startDate?: string;
   endDate?: string;
 }
