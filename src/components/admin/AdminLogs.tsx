@@ -24,7 +24,7 @@ export const AdminLogs = () => {
   
   // Filters
   const [userId, setUserId] = useState('');
-  const [actionType, setActionType] = useState<LogActionType | 'clear' | null>(null);
+  const [actionType, setActionType] = useState<LogActionType | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
@@ -41,7 +41,7 @@ export const AdminLogs = () => {
     sessionsPagination
   } = useLogs({
     userId,
-    actionType: actionType === 'clear' ? undefined : actionType as LogActionType | undefined,
+    actionType: actionType as LogActionType | undefined,
     startDate,
     endDate
   });
@@ -91,12 +91,12 @@ export const AdminLogs = () => {
   };
 
   // Handle action type change
-  const handleActionTypeChange = (value: LogActionType | 'clear') => {
-    // If "clear" is selected, set actionType to null
+  const handleActionTypeChange = (value: string) => {
     if (value === 'clear') {
       setActionType(null);
     } else {
-      setActionType(value);
+      // Only set valid action types from the enum
+      setActionType(value as LogActionType);
     }
   };
 
