@@ -4,6 +4,7 @@ import { Database } from '@/integrations/supabase/types';
 export type Json = Database['public']['Enums']['log_action_type'] | 
   string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+// This should match the Supabase database enum
 export type LogActionType = 
   | 'login'
   | 'logout'

@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { UserActivityLog } from '../types';
+import { UserActivityLog, LogActionType } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { LogsFilters, PaginationControls } from './useLogsTypes';
 import { checkAuthSession, networkDelay, debounce } from './useLogsUtils';
@@ -49,6 +49,7 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       }
 
       if (filters.actionType) {
+        // Use the action type directly since our LogActionType now matches the database
         countQuery.eq('action_type', filters.actionType);
       }
 
@@ -82,6 +83,7 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       }
 
       if (filters.actionType) {
+        // Use the action type directly since our LogActionType now matches the database
         query = query.eq('action_type', filters.actionType);
       }
 
