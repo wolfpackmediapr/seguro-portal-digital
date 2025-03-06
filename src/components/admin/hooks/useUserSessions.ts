@@ -1,10 +1,10 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { UserSession } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { LogsFilters, PaginationControls } from './useLogsTypes';
-import { checkAuthSession, networkDelay, debounce } from './useLogsUtils';
+import { checkAuthSession, debounce } from './useLogsUtils';
+import { fetchUserSessions, getUserSessionsCount } from './useUserSessionsApi';
 
 export const useUserSessions = (filters: LogsFilters = {}) => {
   const [sessions, setSessions] = useState<UserSession[]>([]);
@@ -30,67 +30,25 @@ export const useUserSessions = (filters: LogsFilters = {}) => {
     setPage(currentPage);
 
     try {
-      await networkDelay();
-      
       console.log('Fetching sessions with filters:', filters, 'page:', currentPage, 'pageSize:', pageSize);
       
-      // Calculate range for pagination
-      const from = (currentPage - 1) * pageSize;
-      const to = from + pageSize - 1;
-      
       // First, get the count for pagination
-      const countQuery = supabase
-        .from('user_sessions')
-        .select('id', { count: 'exact', head: true });
+      const totalCount = await getUserSessionsCount({
+        userId: filters.userId,
+        startDate: filters.startDate,
+        endDate: filters.endDate
+      });
       
-      // Apply filters for count query
-      if (filters.userId && filters.userId.trim() !== '') {
-        countQuery.eq('user_id', filters.userId);
-      }
-
-      if (filters.startDate && filters.startDate.trim() !== '') {
-        countQuery.gte('login_time', filters.startDate);
-      }
-
-      if (filters.endDate && filters.endDate.trim() !== '') {
-        countQuery.lte('login_time', filters.endDate);
-      }
-      
-      const { count: totalCount, error: countError } = await countQuery;
-      
-      if (countError) {
-        console.error('Supabase error fetching sessions count:', countError);
-        throw countError;
-      }
-      
-      setTotal(totalCount || 0);
+      setTotal(totalCount);
       
       // Now fetch the actual data with pagination
-      let query = supabase
-        .from('user_sessions')
-        .select('*')
-        .order('login_time', { ascending: false })
-        .range(from, to);
-
-      // Apply filters - only if they have values
-      if (filters.userId && filters.userId.trim() !== '') {
-        query = query.eq('user_id', filters.userId);
-      }
-
-      if (filters.startDate && filters.startDate.trim() !== '') {
-        query = query.gte('login_time', filters.startDate);
-      }
-
-      if (filters.endDate && filters.endDate.trim() !== '') {
-        query = query.lte('login_time', filters.endDate);
-      }
-
-      const { data, error: fetchError } = await query;
-
-      if (fetchError) {
-        console.error('Supabase error fetching sessions:', fetchError);
-        throw fetchError;
-      }
+      const data = await fetchUserSessions({
+        page: currentPage,
+        pageSize,
+        userId: filters.userId,
+        startDate: filters.startDate,
+        endDate: filters.endDate
+      });
 
       console.log('Sessions fetched successfully:', data?.length || 0, 'records out of', totalCount);
 
