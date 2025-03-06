@@ -1,4 +1,3 @@
-<lov-codelov-code>
 import { LogActionType } from '../types';
 
 // We're now getting valid action types directly from the database type
@@ -59,4 +58,3 @@ export const mapActionType = (actionType: string): LogActionType | null => {
 export const getValidActionTypes = (): LogActionType[] => {
   return [...validActionTypes];
 };
-</lov-code>
