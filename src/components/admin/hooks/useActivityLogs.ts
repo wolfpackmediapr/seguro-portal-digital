@@ -5,6 +5,10 @@ import { UserActivityLog, LogActionType } from '../types';
 import { useToast } from '@/hooks/use-toast';
 import { LogsFilters, PaginationControls } from './useLogsTypes';
 import { checkAuthSession, networkDelay, debounce } from './useLogsUtils';
+import { Database } from '@/integrations/supabase/types';
+
+// Type for the database enum values only
+type DatabaseLogActionType = Database['public']['Enums']['log_action_type'];
 
 export const useActivityLogs = (filters: LogsFilters = {}) => {
   const [activityLogs, setActivityLogs] = useState<UserActivityLog[]>([]);
@@ -49,8 +53,13 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       }
 
       if (filters.actionType) {
-        // Use the action type directly - our LogActionType now includes all possible values
-        countQuery.eq('action_type', filters.actionType);
+        // Only apply the filter if the action type is a valid database enum value
+        const isValidDbEnum = isValidDatabaseActionType(filters.actionType);
+        if (isValidDbEnum) {
+          countQuery.eq('action_type', filters.actionType as DatabaseLogActionType);
+        } else {
+          console.log(`Action type "${filters.actionType}" is not a valid database enum value, skipping filter`);
+        }
       }
 
       if (filters.startDate && filters.startDate.trim() !== '') {
@@ -83,8 +92,13 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       }
 
       if (filters.actionType) {
-        // Use the action type directly - our LogActionType now includes all possible values
-        query = query.eq('action_type', filters.actionType);
+        // Only apply the filter if the action type is a valid database enum value
+        const isValidDbEnum = isValidDatabaseActionType(filters.actionType);
+        if (isValidDbEnum) {
+          query = query.eq('action_type', filters.actionType as DatabaseLogActionType);
+        } else {
+          console.log(`Action type "${filters.actionType}" is not a valid database enum value, skipping filter`);
+        }
       }
 
       if (filters.startDate && filters.startDate.trim() !== '') {
@@ -128,6 +142,15 @@ export const useActivityLogs = (filters: LogsFilters = {}) => {
       setIsFetching(false);
     }
   }, [filters, toast, pageSize, isFetching]);
+
+  // Helper function to check if a LogActionType is a valid database enum value
+  const isValidDatabaseActionType = (actionType: LogActionType): boolean => {
+    const validTypes: DatabaseLogActionType[] = [
+      'login', 'logout', 'create_user', 'update_user', 
+      'delete_user', 'session_start', 'session_end', 'feature_access'
+    ];
+    return validTypes.includes(actionType as DatabaseLogActionType);
+  };
 
   // Create a debounced version of the fetch function
   const debouncedFetch = useCallback(
