@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2020',
     sourcemap: true,
-    minify: 'terser',
+    minify: 'esbuild', // Changed from 'terser' to 'esbuild'
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
