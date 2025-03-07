@@ -23,8 +23,9 @@ const Dashboard = () => {
   };
 
   const handleRefresh = () => {
-    // Invalidate all queries to refresh data
-    queryClient.invalidateQueries();
+    // Fix: Specify the exact query keys to invalidate
+    queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+    queryClient.invalidateQueries({ queryKey: ["userRole"] });
   };
 
   return (
