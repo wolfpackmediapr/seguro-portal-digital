@@ -11,7 +11,7 @@ import { useAuthRole } from "@/hooks/useAuthRole";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const Profile = () => {
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState("inicio");
   const { isAdmin, userRole, isLoading } = useAuthRole();
   const [profileData, setProfileData] = useState<any>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -53,6 +53,12 @@ const Profile = () => {
   }, [navigate, toast]);
 
   const handleTabChange = (value: string) => {
+    // If user is not admin and tries to access restricted tabs, redirect to inicio
+    if ((value === "settings" || value === "logs") && !isAdmin) {
+      setActiveTab("inicio");
+      return;
+    }
+    
     setActiveTab(value);
   };
 
