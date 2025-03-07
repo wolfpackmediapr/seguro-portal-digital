@@ -9,6 +9,7 @@ import ProfileForm from "@/components/profile/ProfileForm";
 import ProfileStats from "@/components/profile/ProfileStats";
 import { useAuthRole } from "@/hooks/useAuthRole";
 import { Skeleton } from "@/components/ui/skeleton";
+import DashboardTabs from "@/components/dashboard/tabs/DashboardTabs";
 
 const Profile = () => {
   const [activeTab, setActiveTab] = useState("inicio");
@@ -59,7 +60,13 @@ const Profile = () => {
       return;
     }
     
+    // Set the tab state
     setActiveTab(value);
+    
+    // Navigate to the appropriate page based on tab selection
+    if (value !== "inicio") {
+      navigate("/dashboard");
+    }
   };
 
   if (isLoading || isProfileLoading) {
@@ -86,6 +93,12 @@ const Profile = () => {
       handleTabChange={handleTabChange}
     >
       <div className="space-y-6">
+        <DashboardTabs
+          activeTab={activeTab}
+          handleTabChange={handleTabChange}
+          isAdmin={isAdmin}
+          isLoading={isLoading}
+        />
         <ProfileHeader userRole={userRole} profile={profileData} />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2">
