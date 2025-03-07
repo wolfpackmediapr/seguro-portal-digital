@@ -1,8 +1,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { RotateCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface TypeformEmbedProps {
@@ -84,30 +82,6 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
     });
   }, [formId]);
 
-  const handleReload = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      
-      // Reinitialize Typeform
-      await initializeTypeform();
-      
-      toast({
-        description: "Formulario actualizado",
-        duration: 2000,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Error reloading form:", error);
-        toast({
-          description: "Error al actualizar el formulario",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [formId, initializeTypeform, toast]);
-
   useEffect(() => {
     // Only show error toast for actual errors, not initialization
     initializeTypeform().catch((error) => {
@@ -132,17 +106,8 @@ const TypeformEmbed = ({ title, formId }: TypeformEmbedProps) => {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader>
         <CardTitle>{title}</CardTitle>
-        <Button 
-          variant="outline" 
-          size="icon"
-          onClick={handleReload}
-          disabled={isLoading}
-          title="Actualizar formulario"
-        >
-          <RotateCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </Button>
       </CardHeader>
       <CardContent>
         <div data-tf-live={formId} className="min-h-[400px]"></div>
