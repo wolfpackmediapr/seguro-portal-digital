@@ -7,7 +7,7 @@ export type TabOption = {
   disabled?: boolean;
 };
 
-export function useTabs(defaultValue: string, options?: TabOption[]) {
+export function useTabs(defaultValue: string, options: TabOption[] = []) {
   const [activeTab, setActiveTab] = useState(defaultValue);
 
   const handleTabChange = (value: string) => {
@@ -18,6 +18,6 @@ export function useTabs(defaultValue: string, options?: TabOption[]) {
     activeTab,
     setActiveTab,
     handleTabChange,
-    tabOptions: options || []
+    tabOptions: options
   };
 }
