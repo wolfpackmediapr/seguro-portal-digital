@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import InicioTab from "./InicioTab";
 import SettingsTab from "./SettingsTab";
 import LogsTab from "./LogsTab";
-import { TabOption } from "@/hooks/useTabs";
 
 type DashboardTabsProps = {
   activeTab: string;
@@ -18,24 +17,6 @@ const DashboardTabs = ({
   isAdmin, 
   isLoading 
 }: DashboardTabsProps) => {
-  // Define available tabs based on user role
-  const getAvailableTabs = (): TabOption[] => {
-    const tabs: TabOption[] = [
-      { value: "inicio", label: "Inicio" }
-    ];
-    
-    if (isAdmin) {
-      tabs.push(
-        { value: "logs", label: "Logs" },
-        { value: "settings", label: "Configuración" }
-      );
-    }
-    
-    return tabs;
-  };
-  
-  const availableTabs = getAvailableTabs();
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full">
@@ -47,25 +28,29 @@ const DashboardTabs = ({
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       <TabsList className="mb-6">
-        {availableTabs.map(tab => (
-          <TabsTrigger key={tab.value} value={tab.value}>
-            {tab.label}
-          </TabsTrigger>
-        ))}
+        <TabsTrigger value="inicio">Inicio</TabsTrigger>
+        {/* Show logs tab to admins and super admins */}
+        {isAdmin && (
+          <TabsTrigger value="logs">Logs</TabsTrigger>
+        )}
+        {/* Show settings tab to admins and super admins */}
+        {isAdmin && (
+          <TabsTrigger value="settings">Configuración</TabsTrigger>
+        )}
       </TabsList>
       
       <TabsContent value="inicio">
         <InicioTab />
       </TabsContent>
 
-      {/* Render logs tab content for admins */}
+      {/* Render logs tab content for admins and super admins */}
       {isAdmin && (
         <TabsContent value="logs">
           <LogsTab />
         </TabsContent>
       )}
 
-      {/* Render settings tab content for admins */}
+      {/* Render settings tab content for admins and super admins */}
       {isAdmin && (
         <TabsContent value="settings">
           <SettingsTab />
