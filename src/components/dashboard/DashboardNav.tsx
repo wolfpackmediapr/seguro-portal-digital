@@ -1,6 +1,6 @@
 
 import { LogOut, User, UserRound } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +8,24 @@ import { Button } from "@/components/ui/button";
 
 const DashboardNav = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const getUserEmail = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          setUserEmail(user.email);
+        }
+      } catch (error) {
+        console.error("Error fetching user email:", error);
+      }
+    };
+
+    getUserEmail();
+  }, []);
 
   const toggleDropdown = () => {
     setIsDropdownOpen(!isDropdownOpen);
@@ -53,6 +69,9 @@ const DashboardNav = () => {
           className="p-2 hover:bg-gray-100 rounded-full cursor-pointer transition-colors flex items-center"
           onClick={toggleDropdown}
         >
+          {userEmail && (
+            <span className="mr-2 text-sm text-gray-600 hidden md:inline">{userEmail}</span>
+          )}
           <UserRound className="w-6 h-6 text-gray-600" />
           <span className="ml-2 text-sm hidden sm:inline">Mi Cuenta</span>
         </div>
