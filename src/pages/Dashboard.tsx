@@ -4,7 +4,7 @@ import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import DashboardTabs from "@/components/dashboard/tabs/DashboardTabs";
 import { useAuthRole } from "@/hooks/useAuthRole";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, RotateCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 const Dashboard = () => {
@@ -28,6 +28,11 @@ const Dashboard = () => {
     queryClient.invalidateQueries({ queryKey: ["userRole"] });
   };
 
+  const handlePageRefresh = () => {
+    // This will refresh the entire page
+    window.location.reload();
+  };
+
   return (
     <DashboardLayout 
       isAdmin={isAdmin} 
@@ -37,15 +42,26 @@ const Dashboard = () => {
     >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Dashboard</h2>
-        <Button 
-          onClick={handleRefresh} 
-          variant="outline" 
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="h-4 w-4" />
-          Actualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleRefresh} 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Actualizar
+          </Button>
+          <Button 
+            onClick={handlePageRefresh} 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RotateCw className="h-4 w-4" />
+            Recargar Página
+          </Button>
+        </div>
       </div>
       <DashboardTabs 
         activeTab={activeTab}
