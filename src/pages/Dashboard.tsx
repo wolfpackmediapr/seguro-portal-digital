@@ -5,10 +5,12 @@ import DashboardTabs from "@/components/dashboard/tabs/DashboardTabs";
 import { useAuthRole } from "@/hooks/useAuthRole";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("inicio");
   const { isAdmin, userRole, isLoading } = useAuthRole();
+  const queryClient = useQueryClient();
 
   const handleTabChange = (value: string) => {
     // If user is not admin and tries to access restricted tabs, redirect to inicio
@@ -21,7 +23,8 @@ const Dashboard = () => {
   };
 
   const handleRefresh = () => {
-    window.location.reload();
+    // Invalidate all queries to refresh data
+    queryClient.invalidateQueries();
   };
 
   return (

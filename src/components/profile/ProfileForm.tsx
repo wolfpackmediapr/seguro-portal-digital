@@ -7,9 +7,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Loader2 } from "lucide-react";
+import { UserProfile } from "@/hooks/useProfileQuery";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface ProfileFormProps {
-  profile: any;
+  profile: UserProfile;
   userRole: string | null;
 }
 
@@ -17,20 +19,11 @@ const ProfileForm = ({ profile, userRole }: ProfileFormProps) => {
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
   });
-  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    
-    try {
-      // Update profile in Supabase
+  const updateProfileMutation = useMutation({
+    mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No session found");
       
@@ -44,20 +37,34 @@ const ProfileForm = ({ profile, userRole }: ProfileFormProps) => {
         
       if (error) throw error;
       
+      return { success: true };
+    },
+    onSuccess: () => {
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated",
       });
-    } catch (error) {
+      // Invalidate the profile query to refetch the updated data
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+    },
+    onError: (error) => {
       console.error("Error updating profile:", error);
       toast({
         title: "Error",
         description: "Failed to update profile",
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfileMutation.mutate();
   };
 
   return (
@@ -83,9 +90,13 @@ const ProfileForm = ({ profile, userRole }: ProfileFormProps) => {
             </div>
           </div>
           
-          <Button type="submit" disabled={isSaving} className="w-full">
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isSaving ? "Saving..." : "Save Changes"}
+          <Button 
+            type="submit" 
+            disabled={updateProfileMutation.isPending} 
+            className="w-full"
+          >
+            {updateProfileMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
           </Button>
         </form>
       </CardContent>
