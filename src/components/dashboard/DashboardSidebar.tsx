@@ -1,5 +1,5 @@
 
-import { Home, List, Settings } from "lucide-react";
+import { Home, List, Settings, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type DashboardSidebarProps = {
@@ -25,6 +25,21 @@ const DashboardSidebar = ({ isAdmin, activeTab, handleTabChange }: DashboardSide
         >
           <Home className="w-4 h-4 mr-3" />
           Inicio
+        </a>
+        
+        <a 
+          href="#" 
+          onClick={(e) => {
+            e.preventDefault();
+            handleTabChange("profile");
+          }}
+          className={cn(
+            "flex items-center px-6 py-3 text-sm transition-colors hover:bg-gray-100",
+            activeTab === "profile" ? "bg-gray-100 text-gray-900" : "text-gray-600"
+          )}
+        >
+          <User className="w-4 h-4 mr-3" />
+          Mi Perfil
         </a>
         
         {/* Show logs tab to admins and super admins */}

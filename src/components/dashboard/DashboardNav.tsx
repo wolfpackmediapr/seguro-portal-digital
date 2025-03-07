@@ -6,7 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const DashboardNav = () => {
+type DashboardNavProps = {
+  activeTab?: string;
+  handleTabChange?: (value: string) => void;
+};
+
+const DashboardNav = ({ activeTab, handleTabChange }: DashboardNavProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -51,7 +56,11 @@ const DashboardNav = () => {
 
   const handleViewProfile = () => {
     setIsDropdownOpen(false);
-    navigate("/profile");
+    if (handleTabChange) {
+      handleTabChange("profile");
+    } else {
+      navigate("/profile");
+    }
   };
 
   return (
