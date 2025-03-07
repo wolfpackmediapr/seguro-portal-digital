@@ -1,4 +1,3 @@
-
 import { LogOut, User, UserRound } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -34,13 +33,8 @@ const DashboardNav = () => {
   };
 
   const handleViewProfile = () => {
-    // Close the dropdown
     setIsDropdownOpen(false);
-    // Toast notification - profile view functionality can be expanded later
-    toast({
-      title: "Profile",
-      description: "Viewing your profile",
-    });
+    navigate("/profile");
   };
 
   return (
