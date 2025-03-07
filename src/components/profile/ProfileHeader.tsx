@@ -2,6 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Mail } from "lucide-react";
 
 interface ProfileHeaderProps {
   userRole: string | null;
@@ -43,6 +44,12 @@ const ProfileHeader = ({ userRole, profile }: ProfileHeaderProps) => {
               {userRole === "super_admin" ? "Super Admin" : 
                userRole === "admin" ? "Admin" : "User"}
             </Badge>
+            {profile?.email && (
+              <span className="text-sm text-gray-500 flex items-center">
+                <Mail className="h-4 w-4 mr-1" /> 
+                {profile.email}
+              </span>
+            )}
           </div>
         </div>
       </CardContent>
