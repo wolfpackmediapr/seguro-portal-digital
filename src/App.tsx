@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,7 +8,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { logActivity } from "@/utils/activityLogger";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,7 +111,6 @@ const App = () => {
           <Routes>
             <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
             <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/" />} />
-            <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/" />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
