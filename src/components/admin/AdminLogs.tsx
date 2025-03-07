@@ -1,157 +1,91 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Card,
-  CardContent,
+  CardContent
 } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
-import { useLogs } from './hooks/useLogs';
-import { useLogFilters } from './hooks/useLogFilters';
-import { ActivityLogsTable } from './logs/ActivityLogsTable';
-import { SessionsTable } from './logs/SessionsTable';
-import { LogFilters } from './logs/LogFilters';
-import { LogsLoadingState } from './logs/LogsLoadingState';
-import { LogsHeader } from './logs/LogsHeader';
-import { LogsPaginationWrapper } from './logs/LogsPaginationWrapper';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const AdminLogs = () => {
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('activity');
   
-  // Use the custom hook for filter state
-  const { filters, setters, resetFilters } = useLogFilters();
-  
-  // Fetch logs with the useLogs custom hook
-  const {
-    activityLogs,
-    sessions,
-    isLoadingActivity,
-    isLoadingSessions,
-    fetchActivityLogs,
-    fetchSessions,
-    error,
-    activityPagination,
-    sessionsPagination
-  } = useLogs({
-    userId: filters.userId,
-    actionType: filters.actionType,
-    startDate: filters.startDate,
-    endDate: filters.endDate
-  });
-
-  // Handle errors
-  useEffect(() => {
-    if (error) {
-      console.error('Error in AdminLogs:', error);
-      toast({
-        title: 'Error loading logs',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  }, [error, toast]);
-
-  // Apply filters
-  const handleApplyFilters = () => {
-    console.log('Applying filters:', filters);
-    // Reset to first page when applying filters
-    activityPagination.setPage(1);
-    sessionsPagination.setPage(1); 
-    fetchActivityLogs(1);
-    fetchSessions(1);
-  };
-
-  // Reset filters
-  const handleResetFilters = () => {
-    resetFilters();
-    
-    // Wait for state to update before refetching
-    setTimeout(() => {
-      console.log('Filters reset, refetching...');
-      activityPagination.setPage(1);
-      sessionsPagination.setPage(1);
-      fetchActivityLogs(1);
-      fetchSessions(1);
-    }, 0);
-  };
-
-  // Handle tab change
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-
-  // Add the missing handlers for pagination
-  const handlePageChange = (newPage: number) => {
-    if (activeTab === 'activity') {
-      activityPagination.setPage(newPage);
-    } else {
-      sessionsPagination.setPage(newPage);
-    }
-  };
-
-  const handlePageSizeChange = (newSize: number) => {
-    if (activeTab === 'activity') {
-      activityPagination.setPageSize(newSize);
-    } else {
-      sessionsPagination.setPageSize(newSize);
-    }
-  };
-
-  // Current pagination based on active tab
-  const currentPagination = activeTab === 'activity' 
-    ? activityPagination 
-    : sessionsPagination;
-  
-  if (isLoadingActivity && isLoadingSessions) {
-    return <LogsLoadingState />;
-  }
-
-  const currentData = activeTab === 'activity' ? activityLogs : sessions;
-  const currentLoading = activeTab === 'activity' ? isLoadingActivity : isLoadingSessions;
-  const filename = activeTab === 'activity' ? 'activity-logs' : 'user-sessions';
-
   return (
     <Card className="border shadow-sm rounded-lg">
-      <LogsHeader 
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        data={currentData}
-        isLoading={currentLoading}
-        filename={filename}
-      />
+      <div className="flex items-center justify-between border-b px-6 py-3">
+        <div className="flex items-center space-x-2">
+          <h3 className="text-lg font-semibold">Authentication Logs</h3>
+          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+            Coming Soon
+          </span>
+        </div>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
+          <TabsList>
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+            <TabsTrigger value="sessions">Sessions</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       
       <CardContent className="pt-4">
-        <LogFilters
-          userId={filters.userId}
-          setUserId={setters.setUserId}
-          actionType={filters.actionType}
-          setActionType={setters.setActionType}
-          startDate={filters.startDate}
-          setStartDate={setters.setStartDate}
-          endDate={filters.endDate}
-          setEndDate={setters.setEndDate}
-          onApplyFilters={handleApplyFilters}
-          onResetFilters={handleResetFilters}
-        />
+        <div className="flex flex-col space-y-2 mb-6 px-2">
+          <div className="text-sm text-muted-foreground">
+            Log functionality will be available in the next update. This interface shows a preview of the upcoming feature.
+          </div>
+        </div>
         
-        {activeTab === 'activity' && (
-          <ActivityLogsTable logs={activityLogs} isLoading={isLoadingActivity} />
-        )}
+        {/* Filters placeholder */}
+        <div className="border rounded-md p-4 mb-6">
+          <div className="flex flex-wrap gap-4">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
         
-        {activeTab === 'sessions' && (
-          <SessionsTable sessions={sessions} isLoading={isLoadingSessions} />
-        )}
-        
-        <LogsPaginationWrapper
-          currentPage={currentPagination.page}
-          totalPages={Math.ceil(currentPagination.total / currentPagination.pageSize)}
-          pageSize={currentPagination.pageSize}
-          totalItems={currentPagination.total}
-          isLoading={currentLoading}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          itemsName={activeTab === 'activity' ? 'logs' : 'sessions'}
-        />
+        {/* Table placeholder */}
+        <div className="border rounded-md p-4">
+          <div className="space-y-3">
+            {/* Header row */}
+            <div className="grid grid-cols-4 gap-4 pb-2 border-b">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+            
+            {/* Data rows */}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="grid grid-cols-4 gap-4 py-2 border-b">
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Pagination placeholder */}
+          <div className="flex justify-between items-center mt-4 pt-2">
+            <Skeleton className="h-8 w-48" />
+            <div className="flex space-x-2">
+              <Skeleton className="h-8 w-8 rounded-md" />
+              <Skeleton className="h-8 w-8 rounded-md" />
+              <Skeleton className="h-8 w-8 rounded-md" />
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
